@@ -1,0 +1,120 @@
+import java.text.SimpleDateFormat
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'net.nemerosa:versioning:1.7.1'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'signing'
+apply plugin: 'maven'
+apply plugin: 'net.nemerosa.versioning'
+
+group = 'net.reini'
+
+defaultTasks 'build'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.+'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-runner:1.+'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.+'
+}
+
+task sourcesJar(type: Jar) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+signing {
+    required { project.hasProperty('signing.password') && !project.version.contains('-SNAPSHOT') }
+    sign configurations.archives
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Print service lookup simulating a printer',
+                   'Implementation-Version': version,
+                   'Build-Revision': versioning.info.commit,
+                   'Automatic-Module-Name': "net.reini.dummy-printer"
+        metaInf {
+            from file('.')
+            include 'LICENSE'
+        }
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+uploadArchives {
+    if (!project.hasProperty('signing.password')) {
+        println "no archives will be uploaded due missing signing password"
+        return
+    }
+    repositories.mavenDeployer {
+        beforeDeployment { 
+            MavenDeployment deployment -> signing.signPom(deployment)
+        }
+
+        repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+            authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
+
+        snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
+            authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
+
+        pom.project {
+            name 'Dummy Print service'
+            packaging 'jar'
+            description 'Print service lookup simulating a printer'
+            url 'https://github.com/reinhapa/dummy-printer'
+            
+            scm {
+                connection 'scm:git://github.com/reinhapa/dummy-printer.git'
+                developerConnection 'scm:git://github.com/reinhapa/dummy-printer.git'
+                url 'https://github.com/reinhapa/dummy-printer'
+            }
+
+            licenses {
+                license {
+                    name 'MIT License'
+                    url 'http://www.opensource.org/licenses/mit-license.php'
+                    distribution 'repo'
+                }
+            }
+
+            developers {
+                developer {
+                    id 'reinhapa'
+                    name 'Patrick Reinhart'
+                    email 'patrick@reini.net'
+                }
+            }
+        }
+    }
+}
