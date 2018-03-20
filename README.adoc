@@ -7,6 +7,13 @@ image:https://img.shields.io/badge/license-MIT-blue.svg["MIT License", link="htt
 image:https://img.shields.io/badge/Java-8-blue.svg["Supported Versions", link="https://travis-ci.org/{project-full-path}"]
 image:https://img.shields.io/travis/{project-full-path}/{github-branch}.svg["Build Status", link="https://travis-ci.org/{project-full-path}"]
 
+== Usage
+In order to use the dummy printer you simply have to put the library on your class path.
+From this point on you will find a least one printer `dummyPrinter` and therefore a default printer even you
+do not have any actual printer installed.
+
+In the case where printers have been installed you find an additional `dummyPrinter` too.
+
 == Contribute
 Contributions are always welcome. Use https://google.github.io/styleguide/javaguide.html[Google code style format] for your changes. 
 
