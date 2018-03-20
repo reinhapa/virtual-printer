@@ -7,6 +7,7 @@ buildscript {
 
     dependencies {
         classpath 'net.nemerosa:versioning:1.7.1'
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.+'
     }
 }
 
@@ -14,6 +15,7 @@ apply plugin: 'java-library'
 apply plugin: 'signing'
 apply plugin: 'maven'
 apply plugin: 'net.nemerosa.versioning'
+apply plugin: 'org.junit.platform.gradle.plugin'
 
 group = 'net.reini'
 
@@ -43,6 +45,12 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 artifacts {
     archives sourcesJar
     archives javadocJar
+}
+
+test {
+    testLogging {
+        events 'started', 'passed'
+    }
 }
 
 signing {
