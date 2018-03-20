@@ -1,7 +1,7 @@
 package net.reini.print;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
