@@ -19,15 +19,19 @@ public class DefaultPrinterTest {
 
     System.out.println("Default printer:");
     System.out.println(defaultPrintService.getName());
+    
+    assertEquals("dummyPrinter", defaultPrintService.getName());
   }
 
   @Test
   public void lookupPrintServices() {
     PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
     assertNotNull(printServices);
-    assertEquals(2, printServices.length);
-
+    
     System.out.println("Known printers:");
     Stream.of(printServices).map(PrintService::getName).forEach(System.out::println);
+
+    assertEquals(1, printServices.length);
+    assertEquals("dummyPrinter", printServices[0].getName());
   }
 }
