@@ -1,25 +1,22 @@
 import java.text.SimpleDateFormat
 
-buildscript {
-    repositories {
-        jcenter()
-    }
-
-    dependencies {
-        classpath 'net.nemerosa:versioning:1.7.1'
-        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.+'
-    }
+plugins {
+    id "java"
+    id "signing"
+    id "eclipse"
+    id "jacoco"
+    id "maven"
+    id "org.asciidoctor.convert" version "1.5.7"
+    id "net.nemerosa.versioning" version "2.7.1"
 }
 
-apply plugin: 'java-library'
-apply plugin: 'signing'
-apply plugin: 'maven'
-apply plugin: 'net.nemerosa.versioning'
-apply plugin: 'org.junit.platform.gradle.plugin'
-
-group = 'net.reini'
-
 defaultTasks 'build'
+
+Date buildTimeAndDate = new Date()
+ext {
+    buildDate = new SimpleDateFormat('yyyy-MM-dd').format(buildTimeAndDate)
+    buildTime = new SimpleDateFormat('HH:mm:ss.SSSZ').format(buildTimeAndDate)
+}
 
 repositories {
     jcenter()
@@ -62,6 +59,8 @@ jar {
     manifest {
         attributes 'Implementation-Title': 'Print service lookup simulating a printer',
                    'Implementation-Version': version,
+                   'Build-Date': buildDate,
+                   'Build-Time': buildTime,
                    'Build-Revision': versioning.info.commit,
                    'Automatic-Module-Name': "net.reini.dummy-printer"
         metaInf {
