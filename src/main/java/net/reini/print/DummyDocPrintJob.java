@@ -1,9 +1,15 @@
 package net.reini.print;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import javax.print.Doc;
+import javax.print.DocFlavor;
 import javax.print.DocPrintJob;
 import javax.print.PrintException;
 import javax.print.PrintService;
+import javax.print.StreamPrintService;
+import javax.print.StreamPrintServiceFactory;
 import javax.print.attribute.HashPrintJobAttributeSet;
 import javax.print.attribute.PrintJobAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
@@ -47,7 +53,22 @@ class DummyDocPrintJob implements DocPrintJob {
   @Override
   public void print(Doc doc, PrintRequestAttributeSet printRequestAttributeSet)
       throws PrintException {
-    System.out.println("job name: " + printRequestAttributeSet.get(JobName.class));
-    System.out.println("copies: " + printRequestAttributeSet.get(Copies.class));
+    DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
+    String psMimeType = DocFlavor.BYTE_ARRAY.POSTSCRIPT.getMimeType();
+    StreamPrintServiceFactory[] factories =
+        StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
+    if (factories.length == 0) {
+      System.err.println("No suitable factories");
+    } else {
+      try (FileOutputStream fos = new FileOutputStream("out.ps")) {
+        StreamPrintService sps = factories[0].getPrintService(fos);
+        DocPrintJob pj = sps.createPrintJob();
+        System.out.println("job name: " + printRequestAttributeSet.get(JobName.class));
+        System.out.println("copies: " + printRequestAttributeSet.get(Copies.class));
+        pj.print(doc, printRequestAttributeSet);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }
