@@ -1,1 +1,3 @@
 rootProject.name = 'dummy-printer'
+
+enableFeaturePreview('STABLE_PUBLISHING')

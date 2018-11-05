@@ -1,13 +1,13 @@
 import java.text.SimpleDateFormat
 
 plugins {
-    id "java"
-    id "signing"
-    id "eclipse"
-    id "jacoco"
-    id "maven"
-    id "org.asciidoctor.convert" version "1.5.7"
-    id "net.nemerosa.versioning" version "2.7.1"
+    id 'java'
+    id 'signing'
+    id 'eclipse'
+    id 'jacoco'
+    id 'maven-publish'
+    id 'org.asciidoctor.convert' version '1.5.7'
+    id 'net.nemerosa.versioning' version '2.7.1'
 }
 
 defaultTasks 'build'
@@ -51,7 +51,7 @@ test {
 }
 
 signing {
-    required { project.hasProperty('signing.password') && !project.version.contains('-SNAPSHOT') }
+    required { project.hasProperty('signing.password') && !project.version.endsWith('-SNAPSHOT') }
     sign configurations.archives
 }
 
@@ -70,52 +70,47 @@ jar {
     }
 }
 
-uploadArchives {
-    if (!project.hasProperty('signing.password')) {
-        println "no archives will be uploaded due missing signing password"
-        return
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            pom {
+                name = 'Dummy Print service'
+                description = 'Print service lookup simulating a printer'
+                url = 'https://github.com/reinhapa/dummy-printer'
+                scm {
+                    connection = 'scm:git://github.com/reinhapa/dummy-printer.git'
+                    developerConnection = 'scm:git://github.com/reinhapa/dummy-printer.git'
+                    url = 'https://github.com/reinhapa/dummy-printer'
+                }
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'http://www.opensource.org/licenses/mit-license.php'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'reinhapa'
+                        name = 'Patrick Reinhart'
+                        email = 'patrick@reini.net'
+                    }
+                }
+            }
+        }
     }
-    repositories.mavenDeployer {
-        beforeDeployment { 
-            MavenDeployment deployment -> signing.signPom(deployment)
-        }
-
-        repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-            authentication(userName: ossrhUsername, password: ossrhPassword)
-//            proxy(host: "127.0.0.1", port: 3128, type: 'http')
-        }
-
-        snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
-            authentication(userName: ossrhUsername, password: ossrhPassword)
-//            proxy(host: "127.0.0.1", port: 3128, type: 'http')
-        }
-
-        pom.project {
-            name 'Dummy Print service'
-            packaging 'jar'
-            description 'Print service lookup simulating a printer'
-            url 'https://github.com/reinhapa/dummy-printer'
-            
-            scm {
-                connection 'scm:git://github.com/reinhapa/dummy-printer.git'
-                developerConnection 'scm:git://github.com/reinhapa/dummy-printer.git'
-                url 'https://github.com/reinhapa/dummy-printer'
-            }
-
-            licenses {
-                license {
-                    name 'MIT License'
-                    url 'http://www.opensource.org/licenses/mit-license.php'
-                    distribution 'repo'
-                }
-            }
-
-            developers {
-                developer {
-                    id 'reinhapa'
-                    name 'Patrick Reinhart'
-                    email 'patrick@reini.net'
-                }
+    repositories {
+        maven {
+            def releasesRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username = ossrhUsername
+                password = ossrhPassword
             }
         }
     }
