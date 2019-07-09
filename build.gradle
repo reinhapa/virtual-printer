@@ -6,7 +6,7 @@ plugins {
     id 'eclipse'
     id 'jacoco'
     id 'maven-publish'
-    id 'org.asciidoctor.convert' version '1.5.7'
+    id 'org.asciidoctor.convert' version '2.2.0'
     id 'net.nemerosa.versioning' version '2.7.1'
 }
 
