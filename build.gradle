@@ -25,10 +25,10 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.+'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1'
 
-    testRuntimeOnly 'org.junit.platform:junit-platform-runner:1.+'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.+'
+    testRuntimeOnly 'org.junit.platform:junit-platform-runner:1.7.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.1'
 }
 
 task sourcesJar(type: Jar) {
@@ -47,8 +47,9 @@ artifacts {
 }
 
 test {
+    useJUnitPlatform()
     testLogging {
-        events 'started', 'passed'
+        events 'skipped', 'failed'
     }
 }
 

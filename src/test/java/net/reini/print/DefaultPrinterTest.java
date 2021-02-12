@@ -26,10 +26,13 @@ package net.reini.print;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.print.Doc;
@@ -44,6 +47,7 @@ import javax.print.attribute.HashAttributeSet;
 import javax.print.attribute.standard.PrinterName;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 public class DefaultPrinterTest {
 
@@ -56,6 +60,7 @@ public class DefaultPrinterTest {
   }
 
   @Test
+  @EnabledIfSystemProperty(named = "default", matches = "true")
   public void lookupDefaultPrinter() {
     PrintService defaultPrintService = PrintServiceLookup.lookupDefaultPrintService();
     assertNotNull(defaultPrintService);
@@ -63,7 +68,7 @@ public class DefaultPrinterTest {
     System.out.println("Default printer:");
     System.out.println(defaultPrintService.getName());
 
-    assertEquals("dummyPrinter", defaultPrintService.getName());
+    assertEquals("MyDummyPrinter", defaultPrintService.getName());
   }
 
   @Test
@@ -80,10 +85,10 @@ public class DefaultPrinterTest {
     PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
     assertNotNull(printServices);
 
+    List<String> printerNames = Stream.of(printServices).map(PrintService::getName).collect(Collectors.toList());
     System.out.println("Known printers:");
-    Stream.of(printServices).map(PrintService::getName).forEach(System.out::println);
+    printerNames.forEach(System.out::println);
 
-    assertEquals(1, printServices.length);
-    assertEquals("dummyPrinter", printServices[0].getName());
+    assertTrue(printerNames.contains("MyDummyPrinter"), () -> printerNames + " do not contain 'MyDummyPrinter'");
   }
 }
