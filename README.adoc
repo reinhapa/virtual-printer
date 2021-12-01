@@ -4,12 +4,9 @@ Patrick Reinhart <https://github.com/reinhapa[@reinhapa]>
 :github-branch: master
 
 image:https://img.shields.io/badge/license-MIT-blue.svg["MIT License", link="https://github.com/{project-full-path}/blob/{github-branch}/LICENSE"]
-image:https://img.shields.io/badge/Java-8-blue.svg["Supported Versions", link="https://travis-ci.org/{project-full-path}"]
-image:https://img.shields.io/badge/Java-9-blue.svg["Supported Versions", link="https://travis-ci.org/{project-full-path}"]
-image:https://img.shields.io/badge/Java-10-blue.svg["Supported Versions", link="https://travis-ci.org/{project-full-path}"]
-image:https://img.shields.io/badge/Java-11-blue.svg["Supported Versions", link="https://travis-ci.org/{project-full-path}"]
-image:https://img.shields.io/badge/Java-12-blue.svg["Supported Versions", link="https://travis-ci.org/{project-full-path}"]
-image:https://travis-ci.com/{project-full-path}.svg?branch={github-branch}["Build Status", link="https://travis-ci.com/{project-full-path}"]
+image:https://img.shields.io/badge/Java-11-blue.svg["Java 11", link="https://adoptium.net"]
+image:https://img.shields.io/badge/Java-17-blue.svg["Java 17", link="https://adoptium.net"]
+image:https://github.com/{project-full-path}/workflows/CI/badge.svg["CI", link="https://github.com/{project-full-path}/actions?query=workflow%3ACI"]
 
 == Usage
 In order to use the dummy printer you simply have to put the library on your class path.

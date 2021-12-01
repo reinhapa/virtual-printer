@@ -61,7 +61,7 @@ public class DefaultPrinterTest {
 
   @Test
   @EnabledIfSystemProperty(named = "default", matches = "true")
-  public void lookupDefaultPrinter() {
+  void lookupDefaultPrinter() {
     PrintService defaultPrintService = PrintServiceLookup.lookupDefaultPrintService();
     assertNotNull(defaultPrintService);
 
@@ -72,16 +72,16 @@ public class DefaultPrinterTest {
   }
 
   @Test
-  public void lookupDummyPrinterByName() {
+  void lookupDummyPrinterByName() {
     AttributeSet attributes = new HashAttributeSet();
-    attributes.add(new PrinterName("dummyPrinter", Locale.getDefault()));
+    attributes.add(new PrinterName("MyDummyPrinter", Locale.getDefault()));
     PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, attributes);
 
     assertEquals(1, printServices.length, Arrays.toString(printServices));
   }
 
   @Test
-  public void lookupPrintServices() {
+  void lookupPrintServices() {
     PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
     assertNotNull(printServices);
 

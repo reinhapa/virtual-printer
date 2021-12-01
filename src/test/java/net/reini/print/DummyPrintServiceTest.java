@@ -40,43 +40,43 @@ import javax.print.attribute.standard.PrinterState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class DummyPrintServiceTest {
+class DummyPrintServiceTest {
   private DummyPrintService printerService;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     printerService = new DummyPrintService("PrinterName");
   }
 
   @Test
-  public void testGetName() {
+  void testGetName() {
     assertEquals("PrinterName", printerService.getName());
   }
 
   @Test
-  public void testCreatePrintJob() {
+  void testCreatePrintJob() {
     DocPrintJob printerjob = printerService.createPrintJob();
     assertNotNull(printerjob);
   }
 
   @Test
-  public void testIsDocFlavorSupported() {
+  void testIsDocFlavorSupported() {
     assertTrue(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PAGEABLE));
     assertTrue(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PRINTABLE));
   }
 
   @Test
-  public void testGetAttribute() {
-    PrinterName printerName = (PrinterName) printerService.getAttribute(PrinterName.class);
+  void testGetAttribute() {
+    PrinterName printerName = printerService.getAttribute(PrinterName.class);
     assertNotNull(printerName);
     assertEquals("PrinterName", printerName.getValue());
 
-    PrinterState printerState = (PrinterState) printerService.getAttribute(PrinterState.class);
+    PrinterState printerState = printerService.getAttribute(PrinterState.class);
     assertEquals(PrinterState.IDLE, printerState);
   }
 
   @Test
-  public void testGetAttributes() {
+  void testGetAttributes() {
     PrintServiceAttributeSet attributes = printerService.getAttributes();
 
     assertTrue(attributes.containsValue(new PrinterName("PrinterName", null)));
@@ -84,7 +84,7 @@ public class DummyPrintServiceTest {
   }
 
   @Test
-  public void testGetSupportedDocFlavors() {
+  void testGetSupportedDocFlavors() {
     List<DocFlavor> docFlavors = Arrays.asList(printerService.getSupportedDocFlavors());
 
     assertTrue(docFlavors.contains(DocFlavor.SERVICE_FORMATTED.PAGEABLE));
@@ -92,7 +92,7 @@ public class DummyPrintServiceTest {
   }
 
   @Test
-  public void testGetSupportedAttributeCategories() {
+  void testGetSupportedAttributeCategories() {
     Class<?>[] categories = printerService.getSupportedAttributeCategories();
     assertNotNull(categories);
     assertEquals(0, categories.length);

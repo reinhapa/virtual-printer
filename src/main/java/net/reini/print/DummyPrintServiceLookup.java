@@ -24,7 +24,16 @@
 
 package net.reini.print;
 
-import java.util.stream.Stream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.print.DocFlavor;
 import javax.print.MultiDocPrintService;
@@ -34,23 +43,47 @@ import javax.print.attribute.AttributeSet;
 import javax.print.attribute.standard.PrinterName;
 
 public final class DummyPrintServiceLookup extends PrintServiceLookup {
-  private final PrintService[] printServices;
-  private final MultiDocPrintService[] multiDocPrintServices;
+  private static final Logger LOG = Logger.getLogger(DummyPrintServiceLookup.class.getName());
+
+  private final List<PrintService> printServices;
+  private final List<MultiDocPrintService> multiDocPrintServices;
 
   public DummyPrintServiceLookup() {
-    printServices = new PrintService[] {new DummyPrintService("MyDummyPrinter")};
-    multiDocPrintServices = new MultiDocPrintService[0];
+    printServices = new ArrayList<>();
+    multiDocPrintServices = new ArrayList<>();
+    initiallizePrinters();
   }
 
-  @Override
-  public PrintService[] getPrintServices(DocFlavor flavor, AttributeSet attributes) {
-    return Stream.of(printServices) //
-        .filter(ps -> flavor == null || ps.isDocFlavorSupported(flavor)) //
-        .filter(ps -> attributes == null || serviceMatches(ps, attributes))
-        .toArray(size -> new PrintService[size]);
+  void initiallizePrinters() {
+    try {
+      Enumeration<URL> resources = getClass().getClassLoader().getResources("dunmy-printer-names");
+      while (resources.hasMoreElements()) {
+        try (InputStream in = resources.nextElement().openStream();
+            BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+          br.lines() //
+              .map(String::trim) //
+              .filter(l -> !l.isEmpty()) //
+              .filter(l -> !l.startsWith("#")) //
+              .forEach(this::addPrinter);
+        }
+      }
+      
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, "Failed to initialize printers", e);
+    }
+  }
+
+  private void addPrinter(String printerName) {
+    if (!printServices.stream().map(PrintService::getName).filter(printerName::equals).findFirst().isPresent()) {
+      LOG.log(Level.INFO, () -> "Adding printer: " + printerName);
+      printServices.add(new DummyPrintService(printerName));
+    }
   }
 
   private boolean serviceMatches(PrintService ps, AttributeSet attributes) {
+    if (attributes == null) {
+      return true;
+    }
     PrinterName attribute = (PrinterName) attributes.get(PrinterName.class);
     if (attribute == null) {
       return false;
@@ -58,20 +91,46 @@ public final class DummyPrintServiceLookup extends PrintServiceLookup {
     return ps.getName().equals(attribute.getValue());
   }
 
+  private boolean flavorMatches(PrintService ps, DocFlavor[] flavors) {
+    if (flavors == null) {
+      return true;
+    }
+    for (DocFlavor flavor : flavors) {
+      if (!ps.isDocFlavorSupported(flavor)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override
+  public PrintService[] getPrintServices(DocFlavor flavor, AttributeSet attributes) {
+    return printServices.stream() //
+        .filter(ps -> flavor == null || ps.isDocFlavorSupported(flavor)) //
+        .filter(ps -> serviceMatches(ps, attributes)) //
+        .toArray(size -> new PrintService[size]);
+  }
+
   @Override
   public PrintService[] getPrintServices() {
-    return printServices;
+    return printServices.toArray(size -> new PrintService[size]);
   }
 
   @Override
   public MultiDocPrintService[] getMultiDocPrintServices(DocFlavor[] flavors,
       AttributeSet attributes) {
-    return multiDocPrintServices;
+    return multiDocPrintServices.stream() //
+        .filter(ps -> flavorMatches(ps, flavors)) //
+        .filter(ps -> serviceMatches(ps, attributes)) //
+        .toArray(size -> new MultiDocPrintService[size]);
   }
 
   @Override
   public PrintService getDefaultPrintService() {
-    return printServices[0];
+    if (printServices.isEmpty()) {
+      return null;
+    }
+    return printServices.get(0);
   }
 
 }
