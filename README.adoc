@@ -13,7 +13,11 @@ In order to use the virtual printer you simply have to put the library on your c
 From this point on you will find a least one printer `VirtualPrinter` and therefore a default printer even you
 do not have any actual printer installed.
 
-In the case where printers have been installed you find an additional `VirtualPrinter` too.
+In the case where printers have been installed you find an additional `VirtualPrinter` as one along them.
+
+In case of a `virtual-printer-names` resources exists on the class path, all non empty lines after trimming
+all leading and tailing whitespace characters will used to create virtual printer names in the order of their 
+location on the class path. Duplicate names will be skipped.
 
 == Contribute
 Contributions are always welcome. Use https://google.github.io/styleguide/javaguide.html[Google code style format] for your changes. 
