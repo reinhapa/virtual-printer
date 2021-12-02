@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2018, 2019 Patrick Reinhart
+ * Copyright (c) 2018-2021 Patrick Reinhart
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package net.reini.print;
 
 import java.io.ByteArrayOutputStream;
@@ -43,7 +42,7 @@ import javax.print.attribute.standard.PrinterState;
 import javax.print.event.PrintServiceAttributeListener;
 
 class VirtualPrintService implements PrintService {
-  private static final Class<?>[] supportedAttributeCategories = new Class[0];
+  private static final Class<?>[] supportedAttributeCategories = new Class<?>[0];
   private static final DocFlavor[] emptyDocFlavors = new DocFlavor[0];
 
   private final String name;

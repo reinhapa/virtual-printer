@@ -1,66 +1,70 @@
-import java.text.SimpleDateFormat
-
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2018-2021 Patrick Reinhart
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 plugins {
-    id 'java'
-    id 'signing'
-    id 'eclipse'
-    id 'jacoco'
-    id 'maven-publish'
-    id 'com.github.ben-manes.versions' version '0.39.0'
-    id 'org.asciidoctor.jvm.convert' version '3.3.2'
-    id 'net.nemerosa.versioning' version '2.15.1'
+  id 'java-library'
+  id 'eclipse'
+  id 'org.owasp.dependencycheck' version '6.5.0.1'
+  id 'org.kordamp.gradle.java-project' version '0.47.0'
 }
+
+if (!project.hasProperty('sonatypeUsername')) ext.sonatypeUsername = '**undefined**'
+if (!project.hasProperty('sonatypePassword')) ext.sonatypePassword = '**undefined**'
 
 defaultTasks 'build'
 
-Date buildTimeAndDate = new Date()
-ext {
-    buildDate = new SimpleDateFormat('yyyy-MM-dd').format(buildTimeAndDate)
-    buildTime = new SimpleDateFormat('HH:mm:ss.SSSZ').format(buildTimeAndDate)
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
 
-    testRuntimeOnly 'org.junit.platform:junit-platform-runner:1.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+  testRuntimeOnly 'org.junit.platform:junit-platform-runner:1.8.2'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
 }
 
-test {
-    useJUnitPlatform()
-    testLogging {
-        events 'skipped', 'failed'
-    }
-}
-
-signing {
-    required { project.hasProperty('signing.password') && !project.version.endsWith('-SNAPSHOT') }
-    sign configurations.archives
+compileJava {
+  doFirst {
+    options.compilerArgs = [
+      '-Xlint:all'
+    ]
+  }
 }
 
 jar {
-    manifest {
-        attributes 'Implementation-Title': 'Print service lookup simulating a printer',
-                   'Implementation-Version': project.version,
-                   'Build-Date': buildDate,
-                   'Build-Time': buildTime,
-                   'Build-Revision': versioning.info.commit,
-                   'Automatic-Module-Name': "net.reini.print"
-        metaInf {
-            from file('.')
-            include 'LICENSE'
-        }
-    }
+  manifest.attributes 'Automatic-Module-Name': "net.reini.print"
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    withJavadocJar()
-    withSourcesJar()
+test {
+  useJUnitPlatform()
+  testLogging {
+    events 'skipped'
+  }
 }
 
 dependencyUpdates.resolutionStrategy {
@@ -76,47 +80,72 @@ dependencyUpdates.resolutionStrategy {
   }
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            pom {
-                name = 'Virtual Print service'
-                description = 'Print service lookup simulating a printer'
-                url = 'https://github.com/reinhapa/virtual-printer'
-                scm {
-                    connection = 'scm:git://github.com/reinhapa/virtual-printer.git'
-                    developerConnection = 'scm:git://github.com/reinhapa/virtual-printer.git'
-                    url = 'https://github.com/reinhapa/virtual-printer'
-                }
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'http://www.opensource.org/licenses/mit-license.php'
-                        distribution = 'repo'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'reinhapa'
-                        name = 'Patrick Reinhart'
-                        email = 'patrick@reini.net'
-                    }
-                }
-            }
-        }
+config {
+  release = !project.version.endsWith('-SNAPSHOT')
+  info {
+    vendor = 'reinhapa'
+    name = 'Virtual Print service'
+    description = 'Print service lookup simulating a printer.'
+    inceptionYear = '2018'
+    links {
+      website = 'https://github.com/reinhapa/virtual-printer'
+      issueTracker = 'https://github.com/reinhapa/virtual-printer/issues'
+      scm = 'https://github.com/reinhapa/virtual-printer.git'
+    }
+    scm {
+      connection = 'scm:git://github.com/reinhapa/virtual-printer.git'
+      developerConnection = 'scm:git://github.com/reinhapa/virtual-printer.git'
+      url = 'https://github.com/reinhapa/virtual-printer'
+    }
+    people {
+      person {
+        id = 'reinhapa'
+        name = 'Patrick Reinhart'
+        email = 'patrick@reini.net'
+        roles = [ 'developer' ]
+      }
     }
     repositories {
-        if (!ossrhUsername.isEmpty() && !ossrhPassword.isEmpty()) {
-            maven {
-                def releasesRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-                def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
-                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-                credentials {
-                    username = ossrhUsername
-                    password = ossrhPassword
-                }
-            }
+      repository {
+        name = 'sonatypeRelease'
+        url  = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+        credentials {
+          username = sonatypeUsername
+          password = sonatypePassword
         }
+      }
+      repository {
+        name = 'sonatypeSnapshot'
+        url  = 'https://oss.sonatype.org/content/repositories/snapshots/'
+        credentials {
+          username = sonatypeUsername
+          password = sonatypePassword
+        }
+      }
     }
+  }
+  licensing {
+    licenses {
+      license {
+        id = 'MIT'
+      }
+    }
+  }
+  docs {
+    javadoc.autoLinks.enabled = false
+  }
+  artifacts {
+    minpom.enabled = false
+  }
+  publishing {
+    signing.enabled = release
+    releasesRepository  = 'sonatypeRelease'
+    snapshotsRepository = 'sonatypeSnapshot'
+  }
+}
+
+normalization {
+  runtimeClasspath {
+    ignore('/META-INF/MANIFEST.MF')
+  }
 }
