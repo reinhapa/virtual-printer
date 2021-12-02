@@ -27,6 +27,7 @@ package net.reini.print;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,11 +43,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class VirtualPrintServiceTest {
-  private VirtualPrintService printerService;
+  VirtualPrintService printerService;
 
   @BeforeEach
   void setUp() {
-    printerService = new VirtualPrintService("PrinterName");
+    printerService = new VirtualPrintService("PrinterName", () -> fail("remove action not supported"));
   }
 
   @Test

@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,6 +68,35 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
     }
   }
 
+  private VirtualPrintService registerInJmx(VirtualPrintService virtualPrintService) {
+    try {
+      mbeanServer.registerMBean(virtualPrintService,
+          ObjectName.getInstance("net.reini", table(virtualPrintService)));
+    } catch (Exception e) {
+      LOG.log(Level.SEVERE, "Unable to register management bean", e);
+    }
+    return virtualPrintService;
+  }
+
+  private Hashtable<String, String> table(PrintService virtualPrintService) {
+    Hashtable<String, String> table = new Hashtable<>();
+    table.put("type", "virtual-printers");
+    table.put("name", virtualPrintService.getName());
+    return table;
+  }
+
+  private boolean unregisterFromJmxIfMatches(PrintService printService, String name) {
+    if (printService.getName().equals(name)) {
+      try {
+        mbeanServer.unregisterMBean(ObjectName.getInstance("net.reini", table(printService)));
+      } catch (Exception e) {
+        LOG.log(Level.SEVERE, "Unable to unregister management bean", e);
+      }
+      return true;
+    }
+    return false;
+  }
+
   private void initiallizePrinters() {
     try (Stream<URL> resources =
         Thread.currentThread().getContextClassLoader().resources("virtual-printer-names")) {
@@ -101,7 +131,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
 
   @Override
   public void setDefaultPrinterName(String printerName) {
-    if (printServices.stream() .anyMatch(ps -> ps.getName().equals(printerName))) {
+    if (printServices.stream().anyMatch(ps -> ps.getName().equals(printerName))) {
       defaultPrinterName = printerName;
     }
   }
@@ -111,7 +141,8 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
     requireNonNull(printerName, "printerName must not be null");
     if (printServices.stream().map(PrintService::getName).noneMatch(printerName::equals)) {
       LOG.log(Level.INFO, () -> "Adding printer: " + printerName);
-      printServices.add(new VirtualPrintService(printerName));
+      printServices.add(
+          registerInJmx(new VirtualPrintService(printerName, () -> removePrinter(printerName))));
     }
   }
 
@@ -121,7 +152,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
     if (printerName.equals(defaultPrinterName)) {
       defaultPrinterName = null;
     }
-    printServices.removeIf(ps -> ps.getName().equals(printerName));
+    printServices.removeIf(ps -> unregisterFromJmxIfMatches(ps, printerName));
   }
 
   Stream<PrintService> printServices() {

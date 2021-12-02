@@ -25,7 +25,6 @@ package net.reini.print;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 import javax.print.DocFlavor;
@@ -34,6 +33,7 @@ import javax.print.PrintService;
 import javax.print.ServiceUIFactory;
 import javax.print.attribute.Attribute;
 import javax.print.attribute.AttributeSet;
+import javax.print.attribute.AttributeSetUtilities;
 import javax.print.attribute.HashPrintServiceAttributeSet;
 import javax.print.attribute.PrintServiceAttribute;
 import javax.print.attribute.PrintServiceAttributeSet;
@@ -42,29 +42,47 @@ import javax.print.attribute.standard.PrinterName;
 import javax.print.attribute.standard.PrinterState;
 import javax.print.event.PrintServiceAttributeListener;
 
-class VirtualPrintService implements PrintService {
+class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
   private static final Class<?>[] supportedAttributeCategories = new Class<?>[0];
   private static final DocFlavor[] emptyDocFlavors = new DocFlavor[0];
 
   private final String name;
+  private final Runnable removeAction;
   private final Set<DocFlavor> supportedFlavors;
   private final PrintServiceAttributeSet printServiceAttributeSet;
 
-  public VirtualPrintService(String name) {
+  private PrinterState printerState;
+  private PrinterIsAcceptingJobs acceptingJobs;
+
+  public VirtualPrintService(String name, Runnable removeAction) {
     this.name = name;
+    this.removeAction = removeAction;
     supportedFlavors = new HashSet<>();
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PAGEABLE);
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
     printServiceAttributeSet = new HashPrintServiceAttributeSet();
-    printServiceAttributeSet.add(new PrinterName(name, null));
-    printServiceAttributeSet.add(new PrinterName(name, Locale.getDefault()));
-    printServiceAttributeSet.add(PrinterState.IDLE);
-    printServiceAttributeSet.add(PrinterIsAcceptingJobs.ACCEPTING_JOBS);
+    printerState = PrinterState.IDLE;
+    activate();
   }
 
   @Override
-  public String toString() {
-    return "Virtual Printer : " + getName();
+  public void activate() {
+    acceptingJobs = PrinterIsAcceptingJobs.ACCEPTING_JOBS;
+  }
+
+  @Override
+  public void suspend() {
+    acceptingJobs = PrinterIsAcceptingJobs.NOT_ACCEPTING_JOBS;
+  }
+
+  @Override
+  public void remove() {
+    removeAction.run();
+  }
+
+  @Override
+  public String getPrinterState() {
+    return printerState.toString();
   }
 
   @Override
@@ -83,13 +101,29 @@ class VirtualPrintService implements PrintService {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public <T extends PrintServiceAttribute> T getAttribute(Class<T> category) {
-    return category.cast(printServiceAttributeSet.get(category));
+    final T result;
+    if (category == PrinterName.class) {
+      result = (T) new PrinterName(name, null);
+    } else if (category == PrinterIsAcceptingJobs.class) {
+      result = (T) acceptingJobs;
+    } else if (category == PrinterState.class) {
+      result = (T) printerState;
+    } else {
+      result = category.cast(printServiceAttributeSet.get(category));
+    }
+    return result;
   }
 
   @Override
   public PrintServiceAttributeSet getAttributes() {
-    return printServiceAttributeSet;
+    PrintServiceAttributeSet attrs = new HashPrintServiceAttributeSet();
+    attrs.addAll(printServiceAttributeSet);
+    attrs.add(getAttribute(PrinterName.class));
+    attrs.add(getAttribute(PrinterState.class));
+    attrs.add(getAttribute(PrinterIsAcceptingJobs.class));
+    return AttributeSetUtilities.unmodifiableView(attrs);
   }
 
   @Override
@@ -139,4 +173,9 @@ class VirtualPrintService implements PrintService {
 
   @Override
   public void removePrintServiceAttributeListener(PrintServiceAttributeListener listener) {}
+
+  @Override
+  public String toString() {
+    return "Virtual Printer : " + name;
+  }
 }

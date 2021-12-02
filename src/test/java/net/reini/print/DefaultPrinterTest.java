@@ -26,6 +26,7 @@ package net.reini.print;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,7 +52,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 public class DefaultPrinterTest {
 
   public static void main(String[] args) throws PrintException {
-    PrintService printService = new VirtualPrintService("MyVirtualPrinter");
+    PrintService printService = new VirtualPrintService("MyVirtualPrinter", () -> fail("remove action not supported"));
     DocPrintJob job = printService.createPrintJob();
     Doc doc = new SimpleDoc(new TestPage(printService.getName(), Collections.emptyList()),
         DocFlavor.SERVICE_FORMATTED.PRINTABLE, null);
@@ -84,10 +85,12 @@ public class DefaultPrinterTest {
     PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
     assertNotNull(printServices);
 
-    List<String> printerNames = Stream.of(printServices).map(PrintService::getName).collect(Collectors.toList());
+    List<String> printerNames =
+        Stream.of(printServices).map(PrintService::getName).collect(Collectors.toList());
     System.out.println("Known printers:");
     printerNames.forEach(System.out::println);
 
-    assertTrue(printerNames.contains("MyVirtualPrinter"), () -> printerNames + " do not contain 'MyVirtualPrinter'");
+    assertTrue(printerNames.contains("MyVirtualPrinter"),
+        () -> printerNames + " do not contain 'MyVirtualPrinter'");
   }
 }
