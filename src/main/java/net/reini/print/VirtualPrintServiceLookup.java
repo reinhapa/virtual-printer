@@ -23,16 +23,7 @@
  */
 package net.reini.print;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 
 import javax.print.DocFlavor;
 import javax.print.MultiDocPrintService;
@@ -42,48 +33,13 @@ import javax.print.attribute.AttributeSet;
 import javax.print.attribute.standard.PrinterName;
 
 public final class VirtualPrintServiceLookup extends PrintServiceLookup {
-  private static final Logger LOG = Logger.getLogger(VirtualPrintServiceLookup.class.getName());
+  private static VirtualPrinterRegistry printerRegistry;
 
-  private final List<PrintService> printServices;
-  private final List<MultiDocPrintService> multiDocPrintServices;
-
-  /**
-   * Initializes the virtual print service lookup
-   */
-  public VirtualPrintServiceLookup() {
-    printServices = new ArrayList<>();
-    multiDocPrintServices = new ArrayList<>();
-    initiallizePrinters();
-  }
-
-  private void initiallizePrinters() {
-    try {
-      Enumeration<URL> resources =
-          Thread.currentThread().getContextClassLoader().getResources("virtual-printer-names");
-      while (resources.hasMoreElements()) {
-        try (InputStream in = resources.nextElement().openStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
-          br.lines() //
-              .map(String::trim) //
-              .filter(l -> !l.isEmpty()) //
-              .filter(l -> !l.startsWith("#")) //
-              .forEach(this::addPrinter);
-        }
-      }
-      // initialize default virtual printer if no other have been defined
-      if (printServices.isEmpty()) {
-        addPrinter("VirtualPrinter");
-      }
-    } catch (IOException e) {
-      LOG.log(Level.SEVERE, "Failed to initialize printers", e);
+  static VirtualPrinterRegistry getPrinterRegistry() {
+    if (printerRegistry == null) {
+      printerRegistry = new VirtualPrinterRegistry(getPlatformMBeanServer());
     }
-  }
-
-  private void addPrinter(String printerName) {
-    if (printServices.stream().map(PrintService::getName).noneMatch(printerName::equals)) {
-      LOG.log(Level.INFO, () -> "Adding printer: " + printerName);
-      printServices.add(new VirtualPrintService(printerName));
-    }
+    return printerRegistry;
   }
 
   private boolean serviceMatches(PrintService ps, AttributeSet attributes) {
@@ -111,7 +67,7 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
 
   @Override
   public PrintService[] getPrintServices(DocFlavor flavor, AttributeSet attributes) {
-    return printServices.stream() //
+    return getPrinterRegistry().printServices() //
         .filter(ps -> flavor == null || ps.isDocFlavorSupported(flavor)) //
         .filter(ps -> serviceMatches(ps, attributes)) //
         .toArray(size -> new PrintService[size]);
@@ -119,13 +75,13 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
 
   @Override
   public PrintService[] getPrintServices() {
-    return printServices.toArray(size -> new PrintService[size]);
+    return getPrinterRegistry().printServices().toArray(size -> new PrintService[size]);
   }
 
   @Override
   public MultiDocPrintService[] getMultiDocPrintServices(DocFlavor[] flavors,
       AttributeSet attributes) {
-    return multiDocPrintServices.stream() //
+    return getPrinterRegistry().multiDocPrintServices() //
         .filter(ps -> flavorMatches(ps, flavors)) //
         .filter(ps -> serviceMatches(ps, attributes)) //
         .toArray(size -> new MultiDocPrintService[size]);
@@ -133,10 +89,6 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
 
   @Override
   public PrintService getDefaultPrintService() {
-    if (printServices.isEmpty()) {
-      return null;
-    }
-    return printServices.get(0);
+    return getPrinterRegistry().defaultPrintService();
   }
-
 }
