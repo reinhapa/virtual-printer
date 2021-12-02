@@ -57,7 +57,7 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
     initiallizePrinters();
   }
 
-  void initiallizePrinters() {
+  private void initiallizePrinters() {
     try {
       Enumeration<URL> resources = getClass().getClassLoader().getResources("virtual-printer-names");
       while (resources.hasMoreElements()) {
@@ -70,7 +70,10 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
               .forEach(this::addPrinter);
         }
       }
-      
+      // initialize default virtual printer if no other have been defined
+      if (printServices.isEmpty()) {
+        addPrinter("VirtualPrinter");
+      }
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Failed to initialize printers", e);
     }

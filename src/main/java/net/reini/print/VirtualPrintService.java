@@ -24,6 +24,7 @@
 
 package net.reini.print;
 
+import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -72,7 +73,7 @@ class VirtualPrintService implements PrintService {
 
   @Override
   public DocPrintJob createPrintJob() {
-    return new VirtualDocPrintJob(this);
+    return new VirtualDocPrintJob(this, ByteArrayOutputStream::new);
   }
 
   @Override
