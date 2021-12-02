@@ -20,7 +20,7 @@ ext {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -28,21 +28,6 @@ dependencies {
 
     testRuntimeOnly 'org.junit.platform:junit-platform-runner:1.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-}
-
-task sourcesJar(type: Jar) {
-    classifier 'sources'
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier 'javadoc'
-    from javadoc.destinationDir
-}
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
 }
 
 test {
@@ -64,12 +49,18 @@ jar {
                    'Build-Date': buildDate,
                    'Build-Time': buildTime,
                    'Build-Revision': versioning.info.commit,
-                   'Automatic-Module-Name': "net.reini.dummy-printer"
+                   'Automatic-Module-Name': "net.reini.print"
         metaInf {
             from file('.')
             include 'LICENSE'
         }
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    withJavadocJar()
+    withSourcesJar()
 }
 
 dependencyUpdates.resolutionStrategy {
@@ -89,16 +80,14 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            artifact sourcesJar
-            artifact javadocJar
             pom {
-                name = 'Dummy Print service'
+                name = 'Virtual Print service'
                 description = 'Print service lookup simulating a printer'
-                url = 'https://github.com/reinhapa/dummy-printer'
+                url = 'https://github.com/reinhapa/virtual-printer'
                 scm {
-                    connection = 'scm:git://github.com/reinhapa/dummy-printer.git'
-                    developerConnection = 'scm:git://github.com/reinhapa/dummy-printer.git'
-                    url = 'https://github.com/reinhapa/dummy-printer'
+                    connection = 'scm:git://github.com/reinhapa/virtual-printer.git'
+                    developerConnection = 'scm:git://github.com/reinhapa/virtual-printer.git'
+                    url = 'https://github.com/reinhapa/virtual-printer'
                 }
                 licenses {
                     license {

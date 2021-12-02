@@ -40,12 +40,12 @@ import javax.print.attribute.standard.PrinterState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DummyPrintServiceTest {
-  private DummyPrintService printerService;
+class VirtualPrintServiceTest {
+  private VirtualPrintService printerService;
 
   @BeforeEach
   void setUp() {
-    printerService = new DummyPrintService("PrinterName");
+    printerService = new VirtualPrintService("PrinterName");
   }
 
   @Test

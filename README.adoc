@@ -1,6 +1,6 @@
-= Print service lookup simulating a printer
+= Print service lookup a virtual printers
 Patrick Reinhart <https://github.com/reinhapa[@reinhapa]>
-:project-full-path: reinhapa/dummy-printer
+:project-full-path: reinhapa/virtual-printer
 :github-branch: master
 
 image:https://img.shields.io/badge/license-MIT-blue.svg["MIT License", link="https://github.com/{project-full-path}/blob/{github-branch}/LICENSE"]
@@ -9,11 +9,11 @@ image:https://img.shields.io/badge/Java-17-blue.svg["Java 17", link="https://ado
 image:https://github.com/{project-full-path}/workflows/CI/badge.svg["CI", link="https://github.com/{project-full-path}/actions?query=workflow%3ACI"]
 
 == Usage
-In order to use the dummy printer you simply have to put the library on your class path.
-From this point on you will find a least one printer `dummyPrinter` and therefore a default printer even you
+In order to use the virtual printer you simply have to put the library on your class path.
+From this point on you will find a least one printer `VirtualPrinter` and therefore a default printer even you
 do not have any actual printer installed.
 
-In the case where printers have been installed you find an additional `dummyPrinter` too.
+In the case where printers have been installed you find an additional `VirtualPrinter` too.
 
 == Contribute
 Contributions are always welcome. Use https://google.github.io/styleguide/javaguide.html[Google code style format] for your changes. 

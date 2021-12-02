@@ -52,7 +52,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 public class DefaultPrinterTest {
 
   public static void main(String[] args) throws PrintException {
-    PrintService printService = new DummyPrintService("MyDummyPrinter");
+    PrintService printService = new VirtualPrintService("MyVirtualPrinter");
     DocPrintJob job = printService.createPrintJob();
     Doc doc = new SimpleDoc(new TestPage(printService.getName(), Collections.emptyList()),
         DocFlavor.SERVICE_FORMATTED.PRINTABLE, null);
@@ -68,13 +68,13 @@ public class DefaultPrinterTest {
     System.out.println("Default printer:");
     System.out.println(defaultPrintService.getName());
 
-    assertEquals("MyDummyPrinter", defaultPrintService.getName());
+    assertEquals("MyVirtualPrinter", defaultPrintService.getName());
   }
 
   @Test
-  void lookupDummyPrinterByName() {
+  void lookupVirtualPrinterByName() {
     AttributeSet attributes = new HashAttributeSet();
-    attributes.add(new PrinterName("MyDummyPrinter", Locale.getDefault()));
+    attributes.add(new PrinterName("MyVirtualPrinter", Locale.getDefault()));
     PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, attributes);
 
     assertEquals(1, printServices.length, Arrays.toString(printServices));
@@ -89,6 +89,6 @@ public class DefaultPrinterTest {
     System.out.println("Known printers:");
     printerNames.forEach(System.out::println);
 
-    assertTrue(printerNames.contains("MyDummyPrinter"), () -> printerNames + " do not contain 'MyDummyPrinter'");
+    assertTrue(printerNames.contains("MyVirtualPrinter"), () -> printerNames + " do not contain 'MyVirtualPrinter'");
   }
 }

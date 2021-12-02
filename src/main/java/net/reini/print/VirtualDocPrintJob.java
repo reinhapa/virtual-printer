@@ -42,11 +42,11 @@ import javax.print.attribute.standard.JobName;
 import javax.print.event.PrintJobAttributeListener;
 import javax.print.event.PrintJobListener;
 
-class DummyDocPrintJob implements DocPrintJob {
+class VirtualDocPrintJob implements DocPrintJob {
   private final PrintService printService;
   private final PrintJobAttributeSet printJobAttributeSet;
 
-  public DummyDocPrintJob(PrintService printService) {
+  public VirtualDocPrintJob(PrintService printService) {
     this.printService = printService;
     printJobAttributeSet = new HashPrintJobAttributeSet();
   }
@@ -63,7 +63,8 @@ class DummyDocPrintJob implements DocPrintJob {
 
   @Override
   public void addPrintJobAttributeListener(PrintJobAttributeListener listener,
-      PrintJobAttributeSet printJobAttributeSet) {}
+      PrintJobAttributeSet attributeSet) {
+  }
 
   @Override
   public void removePrintJobAttributeListener(PrintJobAttributeListener listener) {}
@@ -75,7 +76,7 @@ class DummyDocPrintJob implements DocPrintJob {
   public void removePrintJobListener(PrintJobListener listener) {}
 
   @Override
-  public void print(Doc doc, PrintRequestAttributeSet printRequestAttributeSet)
+  public void print(Doc doc, PrintRequestAttributeSet attributes)
       throws PrintException {
     DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
     String psMimeType = DocFlavor.BYTE_ARRAY.POSTSCRIPT.getMimeType();
@@ -87,9 +88,9 @@ class DummyDocPrintJob implements DocPrintJob {
       try (FileOutputStream fos = new FileOutputStream("out.ps")) {
         StreamPrintService sps = factories[0].getPrintService(fos);
         DocPrintJob pj = sps.createPrintJob();
-        System.out.println("job name: " + printRequestAttributeSet.get(JobName.class));
-        System.out.println("copies: " + printRequestAttributeSet.get(Copies.class));
-        pj.print(doc, printRequestAttributeSet);
+        System.out.println("job name: " + attributes.get(JobName.class));
+        System.out.println("copies: " + attributes.get(Copies.class));
+        pj.print(doc, attributes);
       } catch (IOException e) {
         e.printStackTrace();
       }

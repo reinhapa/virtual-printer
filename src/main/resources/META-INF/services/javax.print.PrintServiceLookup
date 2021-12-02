@@ -1,1 +1,1 @@
-net.reini.print.DummyPrintServiceLookup
+net.reini.print.VirtualPrintServiceLookup

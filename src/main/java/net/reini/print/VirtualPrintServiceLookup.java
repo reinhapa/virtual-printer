@@ -42,13 +42,16 @@ import javax.print.PrintServiceLookup;
 import javax.print.attribute.AttributeSet;
 import javax.print.attribute.standard.PrinterName;
 
-public final class DummyPrintServiceLookup extends PrintServiceLookup {
-  private static final Logger LOG = Logger.getLogger(DummyPrintServiceLookup.class.getName());
+public final class VirtualPrintServiceLookup extends PrintServiceLookup {
+  private static final Logger LOG = Logger.getLogger(VirtualPrintServiceLookup.class.getName());
 
   private final List<PrintService> printServices;
   private final List<MultiDocPrintService> multiDocPrintServices;
 
-  public DummyPrintServiceLookup() {
+  /**
+   * Initializes the virtual print service lookup
+   */
+  public VirtualPrintServiceLookup() {
     printServices = new ArrayList<>();
     multiDocPrintServices = new ArrayList<>();
     initiallizePrinters();
@@ -56,7 +59,7 @@ public final class DummyPrintServiceLookup extends PrintServiceLookup {
 
   void initiallizePrinters() {
     try {
-      Enumeration<URL> resources = getClass().getClassLoader().getResources("dunmy-printer-names");
+      Enumeration<URL> resources = getClass().getClassLoader().getResources("virtual-printer-names");
       while (resources.hasMoreElements()) {
         try (InputStream in = resources.nextElement().openStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
@@ -76,7 +79,7 @@ public final class DummyPrintServiceLookup extends PrintServiceLookup {
   private void addPrinter(String printerName) {
     if (!printServices.stream().map(PrintService::getName).filter(printerName::equals).findFirst().isPresent()) {
       LOG.log(Level.INFO, () -> "Adding printer: " + printerName);
-      printServices.add(new DummyPrintService(printerName));
+      printServices.add(new VirtualPrintService(printerName));
     }
   }
 

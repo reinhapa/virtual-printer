@@ -25,6 +25,7 @@
 package net.reini.print;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.print.DocFlavor;
@@ -40,7 +41,7 @@ import javax.print.attribute.standard.PrinterName;
 import javax.print.attribute.standard.PrinterState;
 import javax.print.event.PrintServiceAttributeListener;
 
-class DummyPrintService implements PrintService {
+class VirtualPrintService implements PrintService {
   private static final Class<?>[] supportedAttributeCategories = new Class[0];
   private static final DocFlavor[] emptyDocFlavors = new DocFlavor[0];
 
@@ -48,19 +49,20 @@ class DummyPrintService implements PrintService {
   private final Set<DocFlavor> supportedFlavors;
   private final PrintServiceAttributeSet printServiceAttributeSet;
 
-  public DummyPrintService(String name) {
+  public VirtualPrintService(String name) {
     this.name = name;
     supportedFlavors = new HashSet<>();
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PAGEABLE);
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
     printServiceAttributeSet = new HashPrintServiceAttributeSet();
     printServiceAttributeSet.add(new PrinterName(name, null));
+    printServiceAttributeSet.add(new PrinterName(name, Locale.getDefault()));
     printServiceAttributeSet.add(PrinterState.IDLE);
   }
 
   @Override
   public String toString() {
-    return "Dummy Printer : " + getName();
+    return "Virtual Printer : " + getName();
   }
 
   @Override
@@ -70,7 +72,7 @@ class DummyPrintService implements PrintService {
 
   @Override
   public DocPrintJob createPrintJob() {
-    return new DummyDocPrintJob(this);
+    return new VirtualDocPrintJob(this);
   }
 
   @Override
