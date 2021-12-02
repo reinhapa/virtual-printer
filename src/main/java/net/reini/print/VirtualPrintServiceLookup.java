@@ -58,7 +58,8 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
 
   private void initiallizePrinters() {
     try {
-      Enumeration<URL> resources = getClass().getClassLoader().getResources("virtual-printer-names");
+      Enumeration<URL> resources =
+          Thread.currentThread().getContextClassLoader().getResources("virtual-printer-names");
       while (resources.hasMoreElements()) {
         try (InputStream in = resources.nextElement().openStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
@@ -79,7 +80,7 @@ public final class VirtualPrintServiceLookup extends PrintServiceLookup {
   }
 
   private void addPrinter(String printerName) {
-    if (!printServices.stream().map(PrintService::getName).filter(printerName::equals).findFirst().isPresent()) {
+    if (printServices.stream().map(PrintService::getName).noneMatch(printerName::equals)) {
       LOG.log(Level.INFO, () -> "Adding printer: " + printerName);
       printServices.add(new VirtualPrintService(printerName));
     }

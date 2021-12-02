@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package net.reini.print;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,6 +34,7 @@ import java.util.List;
 import javax.print.DocFlavor;
 import javax.print.DocPrintJob;
 import javax.print.attribute.PrintServiceAttributeSet;
+import javax.print.attribute.standard.PrinterIsAcceptingJobs;
 import javax.print.attribute.standard.PrinterName;
 import javax.print.attribute.standard.PrinterState;
 
@@ -72,6 +74,9 @@ class VirtualPrintServiceTest {
 
     PrinterState printerState = printerService.getAttribute(PrinterState.class);
     assertEquals(PrinterState.IDLE, printerState);
+
+    PrinterIsAcceptingJobs printerIsAcceptingJobs = printerService.getAttribute(PrinterIsAcceptingJobs.class);
+    assertEquals(PrinterIsAcceptingJobs.ACCEPTING_JOBS, printerIsAcceptingJobs);
   }
 
   @Test

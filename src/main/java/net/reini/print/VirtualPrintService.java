@@ -37,6 +37,7 @@ import javax.print.attribute.AttributeSet;
 import javax.print.attribute.HashPrintServiceAttributeSet;
 import javax.print.attribute.PrintServiceAttribute;
 import javax.print.attribute.PrintServiceAttributeSet;
+import javax.print.attribute.standard.PrinterIsAcceptingJobs;
 import javax.print.attribute.standard.PrinterName;
 import javax.print.attribute.standard.PrinterState;
 import javax.print.event.PrintServiceAttributeListener;
@@ -58,6 +59,7 @@ class VirtualPrintService implements PrintService {
     printServiceAttributeSet.add(new PrinterName(name, null));
     printServiceAttributeSet.add(new PrinterName(name, Locale.getDefault()));
     printServiceAttributeSet.add(PrinterState.IDLE);
+    printServiceAttributeSet.add(PrinterIsAcceptingJobs.ACCEPTING_JOBS);
   }
 
   @Override
