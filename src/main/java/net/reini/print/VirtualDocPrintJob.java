@@ -35,6 +35,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.print.Doc;
 import javax.print.DocFlavor;
@@ -61,12 +63,13 @@ import javax.print.event.PrintJobEvent;
 import javax.print.event.PrintJobListener;
 
 class VirtualDocPrintJob implements DocPrintJob {
+  private static final Logger LOG = Logger.getLogger(VirtualDocPrintJob.class.getName());
+
   private final PrintService service;
   private final Supplier<OutputStream> outputStreamSupplier;
 
   private boolean printing;
   private PrintJobAttributeSet jobAttrSet;
-  private PrintRequestAttributeSet reqAttrSet;
   private List<PrintJobListener> jobListeners;
   private List<PrintJobAttributeListener> attrListeners;
   private List<PrintJobAttributeSet> listenedAttributeSets;
@@ -108,65 +111,73 @@ class VirtualDocPrintJob implements DocPrintJob {
   /*
    * There's some inefficiency here as the job set is created even though it may never be requested.
    */
-  private synchronized void initializeAttributeSets(Doc doc, PrintRequestAttributeSet reqSet) {
-    reqAttrSet = new HashPrintRequestAttributeSet();
+  private synchronized PrintRequestAttributeSet initializeAttributeSets(Doc doc,
+      PrintRequestAttributeSet reqSet) {
+    PrintRequestAttributeSet reqAttr = new HashPrintRequestAttributeSet();
+    PrintJobAttributeSet jobAttr = new HashPrintJobAttributeSet();
     if (reqSet != null) {
-      reqAttrSet.addAll(reqSet);
+      reqAttr.addAll(reqSet);
       for (Attribute attribute : reqSet.toArray()) {
         if (attribute instanceof PrintJobAttribute) {
-          jobAttrSet.add(attribute);
+          jobAttr.add(attribute);
         }
       }
     }
-    jobAttrSet = new HashPrintJobAttributeSet();
     DocAttributeSet docSet = doc.getAttributes();
     if (docSet != null) {
       for (Attribute attribute : docSet.toArray()) {
         if (attribute instanceof PrintJobAttribute) {
-          jobAttrSet.add(attribute);
+          jobAttr.add(attribute);
         }
         if (attribute instanceof PrintRequestAttribute) {
-          reqAttrSet.add(attribute);
+          reqAttr.add(attribute);
         }
       }
     }
-    // add the user name to the job
-    String userName = "";
-    try {
-      userName = System.getProperty("user.name");
-    } catch (SecurityException se) {
-    }
-    if (userName == null || userName.equals("")) {
-      RequestingUserName ruName = (RequestingUserName)reqSet.get(RequestingUserName.class);
-      if (ruName != null) {
-        jobAttrSet.add(new JobOriginatingUserName(ruName.getValue(), ruName.getLocale()));
-      } else {
-        jobAttrSet.add(new JobOriginatingUserName("", null));
-      }
-    } else {
-      jobAttrSet.add(new JobOriginatingUserName(userName, null));
-    }
-    // if no job name supplied use doc name (if supplied), if none and its a URL use that, else finally anything ..
-    if (jobAttrSet.get(JobName.class) == null) {
-      JobName jobName;
+    updateUserName(reqAttr, jobAttr);
+    updateJobName(doc, docSet, jobAttr);
+    jobAttrSet = AttributeSetUtilities.unmodifiableView(jobAttr);
+    return reqAttr;
+  }
+
+  private static void updateJobName(Doc doc, DocAttributeSet docSet, PrintJobAttributeSet jobAttr) {
+    if (jobAttr.get(JobName.class) == null) {
       if (docSet != null && docSet.get(DocumentName.class) != null) {
-        DocumentName docName = (DocumentName)docSet.get(DocumentName.class);
-        jobName = new JobName(docName.getValue(), docName.getLocale());
-        jobAttrSet.add(jobName);
+        DocumentName docName = (DocumentName) docSet.get(DocumentName.class);
+        jobAttr.add(new JobName(docName.getValue(), docName.getLocale()));
       } else {
         String str = "VPS Job:" + doc;
         try {
           Object printData = doc.getPrintData();
           if (printData instanceof URL) {
-            str = ((URL)(doc.getPrintData())).toString();
+            str = ((URL) (doc.getPrintData())).toString();
           }
         } catch (IOException e) {
+          LOG.log(Level.WARNING, "Failed to get print data", e);
         }
-        jobName = new JobName(str, null);
-        jobAttrSet.add(jobName);
+        jobAttr.add(new JobName(str, null));
       }
     }
-    jobAttrSet = AttributeSetUtilities.unmodifiableView(jobAttrSet);
+  }
+
+  private static void updateUserName(PrintRequestAttributeSet reqSet,
+      PrintJobAttributeSet jobAttr) {
+    String userName = "";
+    try {
+      userName = System.getProperty("user.name");
+    } catch (SecurityException se) {
+      LOG.log(Level.WARNING, "Failed to get user name", se);
+    }
+    if (userName == null || userName.equals("")) {
+      RequestingUserName ruName = (RequestingUserName) reqSet.get(RequestingUserName.class);
+      if (ruName != null) {
+        jobAttr.add(new JobOriginatingUserName(ruName.getValue(), ruName.getLocale()));
+      } else {
+        jobAttr.add(new JobOriginatingUserName("", null));
+      }
+    } else {
+      jobAttr.add(new JobOriginatingUserName(userName, null));
+    }
   }
 
   @Override
@@ -213,9 +224,7 @@ class VirtualDocPrintJob implements DocPrintJob {
         return;
       }
       int index = attrListeners.indexOf(listener);
-      if (index == -1) {
-        return;
-      } else {
+      if (index >= 0) {
         attrListeners.remove(index);
         listenedAttributeSets.remove(index);
         if (attrListeners.isEmpty()) {
@@ -230,7 +239,7 @@ class VirtualDocPrintJob implements DocPrintJob {
   public void addPrintJobListener(PrintJobListener listener) {
     synchronized (this) {
       if (listener == null) {
-          return;
+        return;
       }
       if (jobListeners == null) {
         jobListeners = new ArrayList<>();
@@ -253,8 +262,7 @@ class VirtualDocPrintJob implements DocPrintJob {
   }
 
   @Override
-  public void print(Doc doc, PrintRequestAttributeSet attributes)
-      throws PrintException {
+  public void print(Doc doc, PrintRequestAttributeSet attributes) throws PrintException {
     synchronized (this) {
       if (printing) {
         throw new PrintException("already printing");
@@ -262,12 +270,13 @@ class VirtualDocPrintJob implements DocPrintJob {
         printing = true;
       }
     }
-    initializeAttributeSets(doc, attributes);
+    PrintRequestAttributeSet reqAttrSet = initializeAttributeSets(doc, attributes);
     final DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
     final String psMimeType = DocFlavor.BYTE_ARRAY.POSTSCRIPT.getMimeType();
-    final StreamPrintServiceFactory[] factories = StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
+    final StreamPrintServiceFactory[] factories =
+        StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
     if (factories.length == 0) {
-      System.err.println("No suitable factories");
+      LOG.log(Level.WARNING, "No suitable stream print service factories found");
       notifyEvent(JOB_FAILED);
     } else {
       try (OutputStream fos = outputStreamSupplier.get()) {
