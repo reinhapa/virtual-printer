@@ -150,7 +150,7 @@ class VirtualDocPrintJob implements DocPrintJob {
         try {
           Object printData = doc.getPrintData();
           if (printData instanceof URL) {
-            str = ((URL) (doc.getPrintData())).toString();
+            str = ((URL)doc.getPrintData()).toString();
           }
         } catch (IOException e) {
           LOG.log(Level.WARNING, "Failed to get print data", e);

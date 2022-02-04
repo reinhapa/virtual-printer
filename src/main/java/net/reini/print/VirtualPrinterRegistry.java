@@ -23,6 +23,7 @@
  */
 package net.reini.print;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
@@ -78,6 +79,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
     return virtualPrintService;
   }
 
+  @SuppressWarnings("JdkObsolete")
   private Hashtable<String, String> table(PrintService virtualPrintService) {
     Hashtable<String, String> table = new Hashtable<>();
     table.put("type", "virtual-printers");
@@ -111,7 +113,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
 
   private boolean addPrintersFromDefinition(URL url) {
     try (InputStream in = url.openStream();
-        BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, UTF_8))) {
       br.lines() //
           .map(String::trim) //
           .filter(l -> !l.isEmpty()) //

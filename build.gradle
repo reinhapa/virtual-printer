@@ -28,6 +28,11 @@ plugins {
   id 'org.kordamp.gradle.java-project' version '0.47.0'
 }
 
+apply {
+  plugin 'org.kordamp.gradle.checkstyle'
+  plugin 'org.kordamp.gradle.errorprone'
+}
+
 if (!project.hasProperty('sonatypeUsername')) ext.sonatypeUsername = '**undefined**'
 if (!project.hasProperty('sonatypePassword')) ext.sonatypePassword = '**undefined**'
 
@@ -122,6 +127,11 @@ config {
           password = sonatypePassword
         }
       }
+    }
+  }
+  quality {
+    errorprone {
+      errorProneVersion = '2.11.0'
     }
   }
   licensing {
