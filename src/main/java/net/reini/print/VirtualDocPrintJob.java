@@ -3,23 +3,20 @@
  *
  * Copyright (c) 2018-2022 Patrick Reinhart
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 package net.reini.print;
 
@@ -34,6 +31,7 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,16 +63,17 @@ import javax.print.event.PrintJobListener;
 class VirtualDocPrintJob implements DocPrintJob {
   private static final Logger LOG = Logger.getLogger(VirtualDocPrintJob.class.getName());
 
+  private final AtomicBoolean printing;
   private final PrintService service;
   private final Supplier<OutputStream> outputStreamSupplier;
 
-  private boolean printing;
   private PrintJobAttributeSet jobAttrSet;
   private List<PrintJobListener> jobListeners;
   private List<PrintJobAttributeListener> attrListeners;
   private List<PrintJobAttributeSet> listenedAttributeSets;
 
   VirtualDocPrintJob(PrintService service, Supplier<OutputStream> outputStreamSupplier) {
+    this.printing = new AtomicBoolean();
     this.service = service;
     this.outputStreamSupplier = outputStreamSupplier;
   }
@@ -84,7 +83,7 @@ class VirtualDocPrintJob implements DocPrintJob {
       if (jobListeners != null) {
         PrintJobEvent event = new PrintJobEvent(this, reason);
         for (PrintJobListener listener : jobListeners) {
-          switch (reason) {
+          switch (event.getPrintEventType()) {
             case JOB_CANCELED:
               listener.printJobCanceled(event);
               break;
@@ -150,7 +149,7 @@ class VirtualDocPrintJob implements DocPrintJob {
         try {
           Object printData = doc.getPrintData();
           if (printData instanceof URL) {
-            str = ((URL)doc.getPrintData()).toString();
+            str = ((URL) doc.getPrintData()).toString();
           }
         } catch (IOException e) {
           LOG.log(Level.WARNING, "Failed to get print data", e);
@@ -263,31 +262,30 @@ class VirtualDocPrintJob implements DocPrintJob {
 
   @Override
   public void print(Doc doc, PrintRequestAttributeSet attributes) throws PrintException {
-    synchronized (this) {
-      if (printing) {
-        throw new PrintException("already printing");
-      } else {
-        printing = true;
-      }
+    if (!printing.compareAndSet(false, true)) {
+      throw new PrintException("already printing");
     }
-    PrintRequestAttributeSet reqAttrSet = initializeAttributeSets(doc, attributes);
-    final DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
-    final String psMimeType = DocFlavor.BYTE_ARRAY.POSTSCRIPT.getMimeType();
-    final StreamPrintServiceFactory[] factories =
-        StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
-    if (factories.length == 0) {
-      LOG.log(Level.WARNING, "No suitable stream print service factories found");
-      notifyEvent(JOB_FAILED);
-    } else {
-      try (OutputStream fos = outputStreamSupplier.get()) {
-        StreamPrintService sps = factories[0].getPrintService(fos);
-        DocPrintJob pj = sps.createPrintJob();
-        pj.print(doc, reqAttrSet);
-        notifyEvent(JOB_COMPLETE);
-      } catch (IOException e) {
-        e.printStackTrace();
+    try {
+      final DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
+      final String psMimeType = DocFlavor.BYTE_ARRAY.POSTSCRIPT.getMimeType();
+      final StreamPrintServiceFactory[] factories =
+          StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
+      if (factories.length == 0) {
+        LOG.log(Level.WARNING, "No suitable stream print service factories found");
         notifyEvent(JOB_FAILED);
+      } else {
+        try (OutputStream fos = outputStreamSupplier.get()) {
+          StreamPrintService sps = factories[0].getPrintService(fos);
+          DocPrintJob pj = sps.createPrintJob();
+          pj.print(doc, initializeAttributeSets(doc, attributes));
+          notifyEvent(JOB_COMPLETE);
+        }
       }
+    } catch (IOException e) {
+      Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Printing failed", e);
+      notifyEvent(JOB_FAILED);
+    } finally {
+      notifyEvent(NO_MORE_EVENTS);
     }
   }
 }

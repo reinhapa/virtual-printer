@@ -17,7 +17,6 @@ jobs:
       matrix:
         jdk: ['11', '17']
         os: [ubuntu-latest, windows-latest, macOS-latest]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK ${{ matrix.jdk }}
@@ -29,3 +28,23 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+    - name: SonarQube
+      if:  ${{ matrix.jdk == '17' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+      run: ./gradlew sonarqube -PsonarToken=${{ secrets.SONAR_TOKEN }}
+  deploy:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        gpg-private-key: "${{ secrets.GPG_SIGNING_KEY }}"
+        java-version: '11'
+    - name: Deploy
+      run: ./gradlew publish -x test -PsonatypeUsername=${{ secrets.OSSRH_USERNAME }} -PsonatypePassword=${{ secrets.OSSRH_PASSWORD }} -Psigning.password=${{ secrets.GPG_PASSPHRASE }}

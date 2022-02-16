@@ -3,29 +3,28 @@
  *
  * Copyright (c) 2018-2022 Patrick Reinhart
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 package net.reini.print;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import javax.print.DocFlavor;
 import javax.print.DocPrintJob;
@@ -40,6 +39,8 @@ import javax.print.attribute.PrintServiceAttributeSet;
 import javax.print.attribute.standard.PrinterIsAcceptingJobs;
 import javax.print.attribute.standard.PrinterName;
 import javax.print.attribute.standard.PrinterState;
+import javax.print.event.PrintJobAdapter;
+import javax.print.event.PrintJobEvent;
 import javax.print.event.PrintServiceAttributeListener;
 
 class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
@@ -49,10 +50,44 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
   private final String name;
   private final Runnable removeAction;
   private final Set<DocFlavor> supportedFlavors;
+  private final StatisticsListener statisticsListener;
   private final PrintServiceAttributeSet printServiceAttributeSet;
 
   private PrinterState printerState;
   private PrinterIsAcceptingJobs acceptingJobs;
+
+  static class StatisticsListener extends PrintJobAdapter {
+    final LongAdder canceled = new LongAdder();
+    final LongAdder completed = new LongAdder();
+    final LongAdder failed = new LongAdder();
+    final AtomicLong running = new AtomicLong();
+
+    DocPrintJob startJob(VirtualDocPrintJob virtualDocPrintJob) {
+      virtualDocPrintJob.addPrintJobListener(this);
+      running.incrementAndGet();
+      return virtualDocPrintJob;
+    }
+
+    @Override
+    public void printJobCanceled(PrintJobEvent pje) {
+      canceled.increment();
+    }
+
+    @Override
+    public void printJobCompleted(PrintJobEvent pje) {
+      completed.increment();
+    }
+
+    @Override
+    public void printJobFailed(PrintJobEvent pje) {
+      failed.increment();
+    }
+
+    @Override
+    public void printJobNoMoreEvents(PrintJobEvent pje) {
+      running.decrementAndGet();
+    }
+  }
 
   public VirtualPrintService(String name, Runnable removeAction) {
     this.name = name;
@@ -61,8 +96,29 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PAGEABLE);
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
     printServiceAttributeSet = new HashPrintServiceAttributeSet();
+    statisticsListener = new StatisticsListener();
     printerState = PrinterState.IDLE;
     activate();
+  }
+
+  @Override
+  public long getCanceled() {
+    return statisticsListener.canceled.longValue();
+  }
+
+  @Override
+  public long getCompleted() {
+    return statisticsListener.completed.longValue();
+  }
+
+  @Override
+  public long getFailed() {
+    return statisticsListener.failed.longValue();
+  }
+
+  @Override
+  public int getRunning() {
+    return 0;
   }
 
   @Override
@@ -92,7 +148,7 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
 
   @Override
   public DocPrintJob createPrintJob() {
-    return new VirtualDocPrintJob(this, ByteArrayOutputStream::new);
+    return statisticsListener.startJob(new VirtualDocPrintJob(this, ByteArrayOutputStream::new));
   }
 
   @Override
