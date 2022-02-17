@@ -36,6 +36,11 @@ if (!project.hasProperty('sonatypeUsername')) ext.sonatypeUsername = '**undefine
 if (!project.hasProperty('sonatypePassword')) ext.sonatypePassword = '**undefined**'
 if (!project.hasProperty('sonarToken')) ext.sonarToken = '**undefined**'
 
+//override from command line with -Pversion=x.y.z
+
+group = 'net.reini'
+version = '1.0.1-SNAPSHOT'
+
 defaultTasks 'build'
 
 java {
