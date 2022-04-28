@@ -18,12 +18,13 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package net.reini.print;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
 import javax.print.DocFlavor;
@@ -53,19 +54,33 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
   private final StatisticsListener statisticsListener;
   private final PrintServiceAttributeSet printServiceAttributeSet;
 
-  private PrinterState printerState;
   private PrinterIsAcceptingJobs acceptingJobs;
 
   static class StatisticsListener extends PrintJobAdapter {
     final LongAdder canceled = new LongAdder();
     final LongAdder completed = new LongAdder();
     final LongAdder failed = new LongAdder();
-    final AtomicLong running = new AtomicLong();
+    final AtomicInteger running = new AtomicInteger();
+
+    private PrinterState defaultState = PrinterState.IDLE;
 
     DocPrintJob startJob(VirtualDocPrintJob virtualDocPrintJob) {
       virtualDocPrintJob.addPrintJobListener(this);
       running.incrementAndGet();
       return virtualDocPrintJob;
+    }
+
+    void reset() {
+      completed.reset();
+      canceled.reset();
+      failed.reset();
+    }
+
+    PrinterState printerState() {
+      if (running.get() > 0) {
+        return PrinterState.PROCESSING;
+      }
+      return defaultState;
     }
 
     @Override
@@ -97,7 +112,6 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
     supportedFlavors.add(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
     printServiceAttributeSet = new HashPrintServiceAttributeSet();
     statisticsListener = new StatisticsListener();
-    printerState = PrinterState.IDLE;
     activate();
   }
 
@@ -118,7 +132,7 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
 
   @Override
   public int getRunning() {
-    return 0;
+    return statisticsListener.running.get();
   }
 
   @Override
@@ -137,8 +151,13 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
   }
 
   @Override
+  public void resetStatistics() {
+    statisticsListener.reset();
+  }
+
+  @Override
   public String getPrinterState() {
-    return printerState.toString();
+    return statisticsListener.printerState().toString();
   }
 
   @Override
@@ -165,7 +184,7 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
     } else if (category == PrinterIsAcceptingJobs.class) {
       result = (T) acceptingJobs;
     } else if (category == PrinterState.class) {
-      result = (T) printerState;
+      result = (T) statisticsListener.printerState();
     } else {
       result = category.cast(printServiceAttributeSet.get(category));
     }

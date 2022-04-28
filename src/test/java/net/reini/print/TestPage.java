@@ -37,7 +37,8 @@ import java.awt.print.PrinterException;
 import java.net.InetAddress;
 import java.text.AttributedString;
 import java.text.DecimalFormat;
-import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +131,8 @@ public class TestPage implements Printable {
     valuePosition.setLocation(titleLeft, currentTop);
     astring = new AttributedString("Print date/time:", attrs_key);
     g2d.drawString(astring.getIterator(), titlePosition.x, titlePosition.y);
-    astring = new AttributedString(RFC_1123_DATE_TIME.format(Instant.now()), attrs_value);
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+    astring = new AttributedString(RFC_1123_DATE_TIME.format(now), attrs_value);
     g2d.drawString(astring.getIterator(), valuePosition.x, valuePosition.y);
 
     currentTop += FONT_SIZE.doubleValue();

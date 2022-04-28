@@ -78,4 +78,9 @@ public interface VirtualPrintServiceMXBean {
    * Removes the current virtual printer
    */
   void remove();
+
+  /**
+   * Resets the statistic counters for completed, failed and canceled jobs.
+   */
+  void resetStatistics();
 }

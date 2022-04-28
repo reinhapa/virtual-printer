@@ -36,9 +36,9 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.print.CancelablePrintJob;
 import javax.print.Doc;
 import javax.print.DocFlavor;
-import javax.print.DocPrintJob;
 import javax.print.PrintException;
 import javax.print.PrintService;
 import javax.print.StreamPrintService;
@@ -60,9 +60,10 @@ import javax.print.event.PrintJobAttributeListener;
 import javax.print.event.PrintJobEvent;
 import javax.print.event.PrintJobListener;
 
-class VirtualDocPrintJob implements DocPrintJob {
+class VirtualDocPrintJob implements CancelablePrintJob {
   private static final Logger LOG = Logger.getLogger(VirtualDocPrintJob.class.getName());
 
+  private final AtomicBoolean canceled;
   private final AtomicBoolean printing;
   private final PrintService service;
   private final Supplier<OutputStream> outputStreamSupplier;
@@ -73,6 +74,7 @@ class VirtualDocPrintJob implements DocPrintJob {
   private List<PrintJobAttributeSet> listenedAttributeSets;
 
   VirtualDocPrintJob(PrintService service, Supplier<OutputStream> outputStreamSupplier) {
+    this.canceled = new AtomicBoolean();
     this.printing = new AtomicBoolean();
     this.service = service;
     this.outputStreamSupplier = outputStreamSupplier;
@@ -262,6 +264,9 @@ class VirtualDocPrintJob implements DocPrintJob {
 
   @Override
   public void print(Doc doc, PrintRequestAttributeSet attributes) throws PrintException {
+    if (canceled.get()) {
+      throw new PrintException("printing canceled");
+    }
     if (!printing.compareAndSet(false, true)) {
       throw new PrintException("already printing");
     }
@@ -271,20 +276,33 @@ class VirtualDocPrintJob implements DocPrintJob {
       final StreamPrintServiceFactory[] factories =
           StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
       if (factories.length == 0) {
-        LOG.log(Level.WARNING, "No suitable stream print service factories found");
-        notifyEvent(JOB_FAILED);
+        throw new PrintException("No suitable stream print service factories found");
       } else {
-        try (OutputStream fos = outputStreamSupplier.get()) {
-          StreamPrintService sps = factories[0].getPrintService(fos);
-          DocPrintJob pj = sps.createPrintJob();
-          pj.print(doc, initializeAttributeSets(doc, attributes));
-          notifyEvent(JOB_COMPLETE);
-        }
+        printToStream(doc, attributes, factories[0]);
       }
-    } catch (IOException e) {
-      Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Printing failed", e);
+    } catch (PrintException e) {
       notifyEvent(JOB_FAILED);
+      throw e;
     } finally {
+      notifyEvent(NO_MORE_EVENTS);
+    }
+  }
+
+  private void printToStream(Doc doc, PrintRequestAttributeSet attributes,
+      StreamPrintServiceFactory spf) throws PrintException {
+    try (OutputStream fos = outputStreamSupplier.get()) {
+      StreamPrintService sps = spf.getPrintService(fos);
+      sps.createPrintJob().print(doc, initializeAttributeSets(doc, attributes));
+      notifyEvent(JOB_COMPLETE);
+    } catch (IOException e) {
+      throw new PrintException("Output failed", e);
+    }
+  }
+
+  @Override
+  public void cancel() throws PrintException {
+    if (canceled.compareAndSet(false, true)) {
+      notifyEvent(JOB_CANCELED);
       notifyEvent(NO_MORE_EVENTS);
     }
   }

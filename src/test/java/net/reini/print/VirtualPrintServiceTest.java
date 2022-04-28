@@ -18,87 +18,221 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package net.reini.print;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static javax.print.DocFlavor.SERVICE_FORMATTED.PRINTABLE;
+import static javax.print.DocFlavor.STRING.TEXT_PLAIN;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.Arrays;
 import java.util.List;
 
+import javax.print.CancelablePrintJob;
+import javax.print.Doc;
 import javax.print.DocFlavor;
 import javax.print.DocPrintJob;
+import javax.print.PrintException;
+import javax.print.SimpleDoc;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.PrintServiceAttributeSet;
 import javax.print.attribute.standard.PrinterIsAcceptingJobs;
+import javax.print.attribute.standard.PrinterMoreInfoManufacturer;
 import javax.print.attribute.standard.PrinterName;
 import javax.print.attribute.standard.PrinterState;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
 
+@MockitoSettings
 class VirtualPrintServiceTest {
+  @Mock
+  Runnable removeAction;
   VirtualPrintService printerService;
 
   @BeforeEach
   void setUp() {
-    printerService =
-        new VirtualPrintService("PrinterName", () -> fail("remove action not supported"));
+    printerService = new VirtualPrintService("PrinterName", removeAction);
+  }
+
+  @AfterEach
+  void tearDown() {
+    verifyNoMoreInteractions(removeAction);
   }
 
   @Test
-  void testGetName() {
-    assertEquals("PrinterName", printerService.getName());
+  void getNameAndToString() {
+    assertThat(printerService.getName()).isEqualTo("PrinterName");
+    assertThat(printerService).hasToString("Virtual Printer : PrinterName");
   }
 
   @Test
-  void testCreatePrintJob() {
-    DocPrintJob printerjob = printerService.createPrintJob();
-    assertNotNull(printerjob);
+  void createPrintJob() {
+    assertThat(printerService.getRunning()).isZero();
+    assertThat(printerService.getPrinterState()).isEqualTo("idle");
+
+    assertThat(printerService.createPrintJob()).isNotNull();
+    assertThat(printerService.getRunning()).isEqualTo(1);
+    assertThat(printerService.getPrinterState()).isEqualTo("processing");
+    assertThat(printerService.createPrintJob()).isNotNull();
+    assertThat(printerService.getRunning()).isEqualTo(2);
+    assertThat(printerService.getPrinterState()).isEqualTo("processing");
   }
 
   @Test
-  void testIsDocFlavorSupported() {
-    assertTrue(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PAGEABLE));
-    assertTrue(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PRINTABLE));
+  void isDocFlavorSupported() {
+    assertThat(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PAGEABLE)).isTrue();
+    assertThat(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PRINTABLE)).isTrue();
   }
 
   @Test
-  void testGetAttribute() {
+  void getAttribute() {
     PrinterName printerName = printerService.getAttribute(PrinterName.class);
-    assertNotNull(printerName);
-    assertEquals("PrinterName", printerName.getValue());
+    assertThat(printerName).isNotNull().extracting(PrinterName::getValue).isEqualTo("PrinterName");
 
     PrinterState printerState = printerService.getAttribute(PrinterState.class);
-    assertEquals(PrinterState.IDLE, printerState);
+    assertThat(printerState).isEqualTo(PrinterState.IDLE);
 
-    PrinterIsAcceptingJobs printerIsAcceptingJobs =
-        printerService.getAttribute(PrinterIsAcceptingJobs.class);
-    assertEquals(PrinterIsAcceptingJobs.ACCEPTING_JOBS, printerIsAcceptingJobs);
+    PrinterMoreInfoManufacturer manufacturer =
+        printerService.getAttribute(PrinterMoreInfoManufacturer.class);
+    assertThat(manufacturer).isNull();
   }
 
   @Test
-  void testGetAttributes() {
+  void getAttributes() {
     PrintServiceAttributeSet attributes = printerService.getAttributes();
 
-    assertTrue(attributes.containsValue(new PrinterName("PrinterName", null)));
-    assertTrue(attributes.containsValue(PrinterState.IDLE));
+    assertThat(attributes.containsValue(new PrinterName("PrinterName", null))).isTrue();
+    assertThat(attributes.containsValue(PrinterState.IDLE)).isTrue();
   }
 
   @Test
-  void testGetSupportedDocFlavors() {
+  void getSupportedDocFlavors() {
     List<DocFlavor> docFlavors = Arrays.asList(printerService.getSupportedDocFlavors());
 
-    assertTrue(docFlavors.contains(DocFlavor.SERVICE_FORMATTED.PAGEABLE));
-    assertTrue(docFlavors.contains(DocFlavor.SERVICE_FORMATTED.PRINTABLE));
+    assertThat(docFlavors).contains(DocFlavor.SERVICE_FORMATTED.PAGEABLE);
+    assertThat(docFlavors).contains(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
   }
 
   @Test
-  void testGetSupportedAttributeCategories() {
-    Class<?>[] categories = printerService.getSupportedAttributeCategories();
-    assertNotNull(categories);
-    assertEquals(0, categories.length);
+  void getServiceUIFactory() {
+    assertThat(printerService.getServiceUIFactory()).isNull();
   }
 
+  @Test
+  void getDefaultAttributeValue() {
+    assertThat(printerService.getDefaultAttributeValue(null)).isNull();
+  }
+
+  @Test
+  void getSupportedAttributeValues() {
+    assertThat(printerService.getSupportedAttributeValues(null, null, null)).isNull();
+  }
+
+  @Test
+  void getUnsupportedAttributes() {
+    assertThat(printerService.getUnsupportedAttributes(null, null)).isNull();
+  }
+
+  @Test
+  void isAttributeCategorySupported() {
+    assertThat(printerService.isAttributeCategorySupported(null)).isFalse();
+  }
+
+  @Test
+  void isAttributeValueSupported() {
+    assertThat(printerService.isAttributeValueSupported(null, null, null)).isFalse();
+  }
+
+  @Test
+  void getSupportedAttributeCategories() {
+    Class<?>[] categories = printerService.getSupportedAttributeCategories();
+    assertThat(categories).isNotNull().isEmpty();
+  }
+
+  @Test
+  void activateAndSuspend() {
+    assertThat(printerService.getAttribute(PrinterIsAcceptingJobs.class))
+        .isEqualTo(PrinterIsAcceptingJobs.ACCEPTING_JOBS);
+    printerService.suspend();
+    assertThat(printerService.getAttribute(PrinterIsAcceptingJobs.class))
+        .isEqualTo(PrinterIsAcceptingJobs.NOT_ACCEPTING_JOBS);
+    printerService.activate();
+    assertThat(printerService.getAttribute(PrinterIsAcceptingJobs.class))
+        .isEqualTo(PrinterIsAcceptingJobs.ACCEPTING_JOBS);
+  }
+
+  @Test
+  void addPrintServiceAttributeListener() {
+    assertThatNoException().isThrownBy(() -> printerService.addPrintServiceAttributeListener(null));
+  }
+
+  @Test
+  void removePrintServiceAttributeListener() {
+    assertThatNoException()
+        .isThrownBy(() -> printerService.removePrintServiceAttributeListener(null));
+  }
+
+  @Test
+  void getCanceled() {
+    assertThat(printerService.getCanceled()).isZero();
+    assertThat(printerService.getRunning()).isZero();
+    DocPrintJob printerjob = printerService.createPrintJob();
+    assertThat(printerService.getRunning()).isEqualTo(1);
+    assertThat(printerjob).isInstanceOf(CancelablePrintJob.class);
+    assertThatNoException().isThrownBy(() -> ((CancelablePrintJob) printerjob).cancel());
+    assertThat(printerService.getCanceled()).isEqualTo(1);
+    assertThat(printerService.getRunning()).isZero();
+    assertResetStatistics();
+  }
+
+  @Test
+  void getCompleted() {
+    assertThat(printerService.getCompleted()).isZero();
+    assertThat(printerService.getRunning()).isZero();
+    DocPrintJob printerjob = printerService.createPrintJob();
+    assertThat(printerService.getRunning()).isEqualTo(1);
+    Doc doc = new SimpleDoc(new TestPage(null, null), PRINTABLE, null);
+    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+    assertThatNoException().isThrownBy(() -> printerjob.print(doc, attributes));
+    assertThat(printerService.getCompleted()).isEqualTo(1);
+    assertThat(printerService.getRunning()).isZero();
+    assertResetStatistics();
+  }
+
+  @Test
+  void getFailed() {
+    assertThat(printerService.getFailed()).isZero();
+    assertThat(printerService.getRunning()).isZero();
+    DocPrintJob printerjob = printerService.createPrintJob();
+    assertThat(printerService.getRunning()).isEqualTo(1);
+    Doc doc = new SimpleDoc("text only", TEXT_PLAIN, null);
+    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+    assertThatExceptionOfType(PrintException.class)
+        .isThrownBy(() -> printerjob.print(doc, attributes));
+    assertThat(printerService.getFailed()).isEqualTo(1);
+    assertThat(printerService.getRunning()).isZero();
+    assertResetStatistics();
+  }
+
+  @Test
+  void remove() {
+    assertThatNoException().isThrownBy(printerService::remove);
+    verify(removeAction).run();
+  }
+
+  void assertResetStatistics() {
+    assertThatNoException().isThrownBy(printerService::resetStatistics);
+    assertThat(printerService.getFailed()).isZero();
+    assertThat(printerService.getCompleted()).isZero();
+    assertThat(printerService.getCanceled()).isZero();
+  }
 }
