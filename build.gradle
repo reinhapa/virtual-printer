@@ -154,7 +154,7 @@ config {
   }
   quality {
     errorprone {
-      errorProneVersion = '2.11.0'
+      errorProneVersion = '2.13.1'
     }
     sonar {
       hostUrl = 'https://sonarcloud.io'
