@@ -171,13 +171,24 @@ config {
     }
   }
   docs {
-    javadoc.autoLinks.enabled = false
+    javadoc {
+      autoLinks.enabled = false
+      options {
+        docTitle = "Virtual Printers ${project.version} API"
+        header = "Virtual Printers ${project.version} API"
+        windowTitle = "Virtual Printers ${project.version} API"
+      }
+    }
   }
   artifacts {
     minpom.enabled = false
   }
   publishing {
-    signing.enabled = release
+    signing {
+      enabled = release
+      secretKey = project.hasProperty('signingKey') ? signingKey : null
+      password = project.hasProperty('signingPassword') ? signingPassword : null
+    }
     releasesRepository  = 'sonatypeRelease'
     snapshotsRepository = 'sonatypeSnapshot'
   }
