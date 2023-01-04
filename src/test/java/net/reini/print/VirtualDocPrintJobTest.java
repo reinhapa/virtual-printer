@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2018-2022 Patrick Reinhart
+ * Copyright (c) 2018-2023 Patrick Reinhart
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -22,6 +22,7 @@ package net.reini.print;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.OutputStream;
 import java.util.function.Supplier;
@@ -93,5 +94,10 @@ class VirtualDocPrintJobTest {
   void testCancel() {
     assertThatNoException().isThrownBy(job::cancel);
     assertThatNoException().isThrownBy(job::cancel);
+  }
+
+  @Test
+  void testPrint() {
+    fail("Not yet implemented");
   }
 }
