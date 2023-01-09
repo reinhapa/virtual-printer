@@ -22,14 +22,24 @@ package net.reini.print;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.function.Supplier;
 
+import javax.print.Doc;
+import javax.print.DocFlavor;
 import javax.print.PrintService;
 import javax.print.attribute.HashPrintJobAttributeSet;
+import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintJobAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.event.PrintJobAttributeListener;
 import javax.print.event.PrintJobListener;
 
@@ -97,7 +107,17 @@ class VirtualDocPrintJobTest {
   }
 
   @Test
-  void testPrint() {
-    fail("Not yet implemented");
+  void testPrint() throws IOException, PrinterException {
+    Doc doc = mock(Doc.class);
+    Printable printable = mock(Printable.class);
+    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+
+    when(outputStreamSupplier.get()).thenReturn(OutputStream.nullOutputStream());
+    when(doc.getDocFlavor()).thenReturn(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
+    when(doc.getPrintData()).thenReturn(printable);
+    when(printable.print(any(), any(), eq(0))).thenReturn(Printable.PAGE_EXISTS);
+    when(printable.print(any(), any(), eq(1))).thenReturn(Printable.NO_SUCH_PAGE);
+
+    assertThatNoException().isThrownBy(() -> job.print(doc, attributes));
   }
 }
