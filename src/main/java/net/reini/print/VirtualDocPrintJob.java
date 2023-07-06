@@ -271,15 +271,15 @@ class VirtualDocPrintJob implements CancelablePrintJob {
       throw new PrintException("already printing");
     }
     try {
-      final DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
-      final String psMimeType = DocFlavor.BYTE_ARRAY.POSTSCRIPT.getMimeType();
+      final DocFlavor flavor = doc.getDocFlavor();
       final StreamPrintServiceFactory[] factories =
-          StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, psMimeType);
+          StreamPrintServiceFactory.lookupStreamPrintServiceFactories(flavor, null);
       if (factories.length == 0) {
-        throw new PrintException("No suitable stream print service factories found");
+        LOG.log(Level.WARNING, "No suitable stream print service factories found");
       } else {
         printToStream(doc, attributes, factories[0]);
       }
+      notifyEvent(JOB_COMPLETE);
     } catch (PrintException e) {
       notifyEvent(JOB_FAILED);
       throw e;
@@ -293,9 +293,8 @@ class VirtualDocPrintJob implements CancelablePrintJob {
     try (OutputStream fos = outputStreamSupplier.get()) {
       StreamPrintService sps = spf.getPrintService(fos);
       sps.createPrintJob().print(doc, initializeAttributeSets(doc, attributes));
-      notifyEvent(JOB_COMPLETE);
-    } catch (IOException e) {
-      throw new PrintException("Output failed", e);
+    } catch (IOException | RuntimeException e) {
+      LOG.log(Level.WARNING, "Stream output failed", e);
     }
   }
 

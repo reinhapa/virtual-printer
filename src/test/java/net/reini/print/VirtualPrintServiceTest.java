@@ -20,16 +20,26 @@
  */
 package net.reini.print;
 
+import static javax.print.DocFlavor.SERVICE_FORMATTED.PAGEABLE;
 import static javax.print.DocFlavor.SERVICE_FORMATTED.PRINTABLE;
 import static javax.print.DocFlavor.STRING.TEXT_PLAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
+import java.awt.print.PageFormat;
+import java.awt.print.Pageable;
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import javax.print.CancelablePrintJob;
 import javax.print.Doc;
@@ -48,6 +58,8 @@ import javax.print.attribute.standard.PrinterState;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoSettings;
 
@@ -88,8 +100,8 @@ class VirtualPrintServiceTest {
 
   @Test
   void isDocFlavorSupported() {
-    assertThat(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PAGEABLE)).isTrue();
-    assertThat(printerService.isDocFlavorSupported(DocFlavor.SERVICE_FORMATTED.PRINTABLE)).isTrue();
+    assertThat(printerService.isDocFlavorSupported(PAGEABLE)).isTrue();
+    assertThat(printerService.isDocFlavorSupported(PRINTABLE)).isTrue();
   }
 
   @Test
@@ -117,8 +129,7 @@ class VirtualPrintServiceTest {
   void getSupportedDocFlavors() {
     List<DocFlavor> docFlavors = Arrays.asList(printerService.getSupportedDocFlavors());
 
-    assertThat(docFlavors).contains(DocFlavor.SERVICE_FORMATTED.PAGEABLE);
-    assertThat(docFlavors).contains(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
+    assertThat(docFlavors).contains(PAGEABLE, PRINTABLE);
   }
 
   @Test
@@ -193,33 +204,50 @@ class VirtualPrintServiceTest {
     assertResetStatistics();
   }
 
-  @Test
-  void getCompleted() {
+  @ParameterizedTest
+  @MethodSource("getCompletedParams")
+  void getCompleted(Doc doc) {
+    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+
     assertThat(printerService.getCompleted()).isZero();
     assertThat(printerService.getRunning()).isZero();
     DocPrintJob printerjob = printerService.createPrintJob();
     assertThat(printerService.getRunning()).isEqualTo(1);
-    Doc doc = new SimpleDoc(new TestPage(null, null), PRINTABLE, null);
-    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
     assertThatNoException().isThrownBy(() -> printerjob.print(doc, attributes));
     assertThat(printerService.getCompleted()).isEqualTo(1);
     assertThat(printerService.getRunning()).isZero();
     assertResetStatistics();
   }
 
+  static Stream<Doc> getCompletedParams() {
+    return Stream.of(new SimpleDoc(new TestPage(null, null), PRINTABLE, null),
+        new SimpleDoc("text only", TEXT_PLAIN, null));
+  }
+
   @Test
-  void getFailed() {
+  void getFailed() throws PrinterException {
+    Pageable pageable = mock("pageable");
+    Printable printable = mock("printable");
+    Doc doc = new SimpleDoc(pageable, PAGEABLE, null);
+    PageFormat pageFormat = new PageFormat();
+    PrinterException printerException = new PrinterException();
+    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+
+    when(pageable.getNumberOfPages()).thenReturn(1);
+    when(pageable.getPageFormat(0)).thenReturn(pageFormat);
+    when(pageable.getPrintable(0)).thenReturn(printable);
+    when(printable.print(any(), eq(pageFormat), eq(0))).thenThrow(printerException);
+
     assertThat(printerService.getFailed()).isZero();
     assertThat(printerService.getRunning()).isZero();
     DocPrintJob printerjob = printerService.createPrintJob();
     assertThat(printerService.getRunning()).isEqualTo(1);
-    Doc doc = new SimpleDoc("text only", TEXT_PLAIN, null);
-    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
     assertThatExceptionOfType(PrintException.class)
         .isThrownBy(() -> printerjob.print(doc, attributes));
     assertThat(printerService.getFailed()).isEqualTo(1);
     assertThat(printerService.getRunning()).isZero();
     assertResetStatistics();
+    verifyNoMoreInteractions(pageable, printable);
   }
 
   @Test
