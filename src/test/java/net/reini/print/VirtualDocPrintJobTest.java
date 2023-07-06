@@ -20,13 +20,21 @@
  */
 package net.reini.print;
 
+import static java.awt.print.Printable.NO_SUCH_PAGE;
+import static java.awt.print.Printable.PAGE_EXISTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.awt.print.PageFormat;
+import java.awt.print.Pageable;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import java.io.IOException;
@@ -41,8 +49,10 @@ import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintJobAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.event.PrintJobAttributeListener;
+import javax.print.event.PrintJobEvent;
 import javax.print.event.PrintJobListener;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -50,17 +60,27 @@ import org.mockito.junit.jupiter.MockitoSettings;
 
 @MockitoSettings
 class VirtualDocPrintJobTest {
-  @Mock
+  @Mock(name = "service")
   PrintService service;
-  @Mock
+  @Mock(name = "outputStreamSupplier")
   Supplier<OutputStream> outputStreamSupplier;
-  @Mock
+  @Mock(name = "attributeListener")
   PrintJobAttributeListener attributeListener;
-  @Mock
+  @Mock(name = "jobListener")
   PrintJobListener jobListener;
+  @Mock(name = "doc")
+  Doc doc;
+  @Mock(name = "printable")
+  Printable printable;
 
   @InjectMocks
   VirtualDocPrintJob job;
+
+  @AfterEach
+  void verifyMocks() {
+    verifyNoMoreInteractions(service, outputStreamSupplier, attributeListener, jobListener, doc,
+        printable);
+  }
 
   @Test
   void testGetPrintService() {
@@ -108,16 +128,45 @@ class VirtualDocPrintJobTest {
 
   @Test
   void testPrint() throws IOException, PrinterException {
-    Doc doc = mock(Doc.class);
-    Printable printable = mock(Printable.class);
     PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
 
     when(outputStreamSupplier.get()).thenReturn(OutputStream.nullOutputStream());
     when(doc.getDocFlavor()).thenReturn(DocFlavor.SERVICE_FORMATTED.PRINTABLE);
     when(doc.getPrintData()).thenReturn(printable);
-    when(printable.print(any(), any(), eq(0))).thenReturn(Printable.PAGE_EXISTS);
-    when(printable.print(any(), any(), eq(1))).thenReturn(Printable.NO_SUCH_PAGE);
+    when(printable.print(any(), any(), eq(0))).thenReturn(PAGE_EXISTS);
+    when(printable.print(any(), any(), eq(1))).thenReturn(NO_SUCH_PAGE);
 
+    job.addPrintJobListener(jobListener);
     assertThatNoException().isThrownBy(() -> job.print(doc, attributes));
+
+    verify(doc, times(2)).getAttributes();
+    verify(doc, times(2)).getDocFlavor();
+    verify(jobListener).printJobCompleted(isA(PrintJobEvent.class));
+    verify(jobListener).printJobNoMoreEvents(isA(PrintJobEvent.class));
+  }
+
+  @Test
+  void testPrintWithError() throws IOException, PrinterException {
+    PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+    PageFormat pagetFormat = new PageFormat();
+
+    Pageable pageable = mock("pageable");
+
+    when(outputStreamSupplier.get()).thenReturn(OutputStream.nullOutputStream());
+    when(doc.getDocFlavor()).thenReturn(DocFlavor.SERVICE_FORMATTED.PAGEABLE);
+    when(doc.getPrintData()).thenReturn(pageable);
+    when(pageable.getNumberOfPages()).thenReturn(1);
+    when(pageable.getPageFormat(0)).thenReturn(pagetFormat);
+    when(pageable.getPrintable(0)).thenReturn(printable);
+    when(printable.print(any(), any(), eq(0))).thenReturn(PAGE_EXISTS);
+
+    job.addPrintJobListener(jobListener);
+    assertThatNoException().isThrownBy(() -> job.print(doc, attributes));
+
+    verify(doc, times(2)).getAttributes();
+    verify(jobListener).printJobCompleted(isA(PrintJobEvent.class));
+    // verify(jobListener).printJobFailed(isA(PrintJobEvent.class));
+    verify(jobListener).printJobNoMoreEvents(isA(PrintJobEvent.class));
+    verifyNoMoreInteractions(pageable);
   }
 }

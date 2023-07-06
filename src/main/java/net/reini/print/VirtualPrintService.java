@@ -243,10 +243,14 @@ class VirtualPrintService implements PrintService, VirtualPrintServiceMXBean {
   }
 
   @Override
-  public void addPrintServiceAttributeListener(PrintServiceAttributeListener listener) {}
+  public void addPrintServiceAttributeListener(PrintServiceAttributeListener listener) {
+    // no action
+  }
 
   @Override
-  public void removePrintServiceAttributeListener(PrintServiceAttributeListener listener) {}
+  public void removePrintServiceAttributeListener(PrintServiceAttributeListener listener) {
+    // no action
+  }
 
   @Override
   public String toString() {
