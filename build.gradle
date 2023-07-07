@@ -39,7 +39,6 @@ if (!project.hasProperty('sonarToken')) ext.sonarToken = '**undefined**'
 //override from command line with -Pversion=x.y.z
 
 group = 'net.reini'
-version = '1.1.1-SNAPSHOT'
 
 defaultTasks 'build'
 
@@ -108,7 +107,7 @@ dependencyUpdates.resolutionStrategy {
 }
 
 config {
-  release = !project.version.endsWith('-SNAPSHOT')
+  release = !project.version.toString().endsWith('-SNAPSHOT')
   info {
     vendor = 'reinhapa'
     name = 'Virtual Print service'
