@@ -1,6 +1,6 @@
-# This workflow will publish the
+# This workflow will publish the artifacts based
 
-name: publish
+name: Publish
 
 on:
   workflow_dispatch:
@@ -11,6 +11,8 @@ jobs:
     name: Deploy
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     - name: Set up JDK
       uses: actions/setup-java@v3
       with:
