@@ -22,7 +22,7 @@ plugins {
   id 'eclipse'
   id 'java-library'
   id 'com.diffplug.spotless' version '6.22.0'
-  id 'org.owasp.dependencycheck' version '8.4.0'
+  id 'org.owasp.dependencycheck' version '8.4.2'
   id 'org.kordamp.gradle.java-project' version '0.51.0'
 }
 
