@@ -29,15 +29,27 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
-    - name: SonarQube
-      if:  ${{ matrix.jdk == '17' }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-        ORG_GRADLE_PROJECT_sonarToken: ${{ secrets.SONAR_TOKEN }}
-      run: ./gradlew sonar
+  code_quality:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+      - name: SonarQube
+        if:  ${{ matrix.jdk == '17' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          ORG_GRADLE_PROJECT_sonarToken: ${{ secrets.SONAR_TOKEN }}
+        run: ./gradlew sonar
   deploy:
     if: ${{ github.event_name != 'pull_request' }}
-    needs: [ build ]
+    needs: [ build, code_quality ]
     runs-on: ubuntu-latest
     name: Deploy
     steps:
