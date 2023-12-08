@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        jdk: ['11', '17', '18']
+        jdk: ['11', '17', '21']
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v4
@@ -33,7 +33,8 @@ jobs:
       if:  ${{ matrix.jdk == '17' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-      run: ./gradlew sonarqube -PsonarToken=${{ secrets.SONAR_TOKEN }}
+        ORG_GRADLE_PROJECT_sonarToken: ${{ secrets.SONAR_TOKEN }}
+      run: ./gradlew sonar
   deploy:
     if: ${{ github.event_name != 'pull_request' }}
     needs: [ build ]
