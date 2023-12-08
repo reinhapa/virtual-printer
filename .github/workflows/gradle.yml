@@ -30,7 +30,6 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
   code_quality:
-    needs: [ build ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
