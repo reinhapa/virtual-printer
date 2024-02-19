@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 plugins {
-  id('org.ajoberstar.reckon.settings') version '0.18.2'
+  id('org.ajoberstar.reckon.settings') version '0.18.3'
 }
 
 reckon {
