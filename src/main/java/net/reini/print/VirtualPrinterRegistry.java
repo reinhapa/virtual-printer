@@ -42,6 +42,7 @@ import javax.print.PrintService;
 
 final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
   private static final Logger LOG = Logger.getLogger(VirtualPrinterRegistry.class.getName());
+  private static final String NET_REINI = "net.reini";
 
   private final MBeanServer mbeanServer;
   private final List<PrintService> printServices;
@@ -59,8 +60,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
 
   private void registerInJmx() {
     try {
-      mbeanServer.registerMBean(this,
-          ObjectName.getInstance("net.reini", "type", "VirtualPrinters"));
+      mbeanServer.registerMBean(this, ObjectName.getInstance(NET_REINI, "type", "VirtualPrinters"));
     } catch (Exception e) {
       LOG.log(Level.SEVERE, "Unable to register management bean", e);
     }
@@ -69,7 +69,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
   private VirtualPrintService registerInJmx(VirtualPrintService virtualPrintService) {
     try {
       mbeanServer.registerMBean(virtualPrintService,
-          ObjectName.getInstance("net.reini", table(virtualPrintService)));
+          ObjectName.getInstance(NET_REINI, table(virtualPrintService)));
     } catch (Exception e) {
       LOG.log(Level.SEVERE, "Unable to register management bean", e);
     }
@@ -87,7 +87,7 @@ final class VirtualPrinterRegistry implements VirtualPrinterRegistryMXBean {
   private boolean unregisterFromJmxIfMatches(PrintService printService, String name) {
     if (printService.getName().equals(name)) {
       try {
-        mbeanServer.unregisterMBean(ObjectName.getInstance("net.reini", table(printService)));
+        mbeanServer.unregisterMBean(ObjectName.getInstance(NET_REINI, table(printService)));
       } catch (Exception e) {
         LOG.log(Level.SEVERE, "Unable to unregister management bean", e);
       }
