@@ -39,9 +39,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '21'
       - name: SonarQube
-        if:  ${{ matrix.jdk == '17' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           ORG_GRADLE_PROJECT_sonarToken: ${{ secrets.SONAR_TOKEN }}
@@ -59,7 +58,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: temurin
-        java-version: '11'
+        java-version: '21'
     - name: Deploy
       env:
         ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_SIGNING_KEY }}
