@@ -1,6 +1,6 @@
 [versions]
 assertj-core = '3.27.3'
-junit-jupiter = '5.12.1'
+junit-jupiter = '5.12.2'
 junit-platform-runner = '1.12.2'
 mockito-junit-jupiter = '5.17.0'
 
