@@ -2,7 +2,7 @@
 assertj-core = '3.27.4'
 junit-jupiter = '5.13.4'
 junit-platform-runner = '1.13.4'
-mockito-junit-jupiter = '5.18.0'
+mockito-junit-jupiter = '5.19.0'
 
 [libraries]
 assertj-core = { module = 'org.assertj:assertj-core', version.ref = 'assertj-core' }
