@@ -20,10 +20,10 @@
       "automerge": false
     },
     {
-      "matchPackageNames": [
-        "gradle"
+      "matchManagers": [
+        "gradle-wrapper"
       ],
-      "allowedVersions": "<=9"
+      "allowedVersions": "<9"
     }
   ],
   "schedule": [
