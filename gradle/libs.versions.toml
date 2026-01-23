@@ -12,6 +12,6 @@ junit-platform-runner = { module = 'org.junit.platform:junit-platform-runner', v
 mockito-junit-jupiter = { module = 'org.mockito:mockito-junit-jupiter', version.ref = 'mockito-junit-jupiter' }
 
 [plugins]
-com-diffplug-spotless = { id = 'com.diffplug.spotless', version = '8.1.0' }
+com-diffplug-spotless = { id = 'com.diffplug.spotless', version = '8.2.0' }
 org-owasp-dependencycheck = { id = 'org.owasp.dependencycheck', version = '12.2.0' }
 org-kordamp-gradle-java-project = { id = 'org.kordamp.gradle.java-project', version = '0.54.0' }
