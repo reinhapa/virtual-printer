@@ -34,7 +34,6 @@ apply {
 
 if (!project.hasProperty('sonatypeUsername')) ext.sonatypeUsername = '**undefined**'
 if (!project.hasProperty('sonatypePassword')) ext.sonatypePassword = '**undefined**'
-if (!project.hasProperty('sonarToken')) ext.sonarToken = '**undefined**'
 
 // override from command line with -Pversion=x.y.z
 
@@ -156,7 +155,7 @@ config {
     }
     sonar {
       hostUrl = 'https://sonarcloud.io'
-      login = sonarToken
+      login = 'x' // using environment variable instead
       organization = 'reinhapa'
       projectKey = 'reinhapa_virtual-printer'
     }
