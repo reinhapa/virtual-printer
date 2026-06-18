@@ -43,7 +43,7 @@ jobs:
       - name: SonarQube
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          ORG_GRADLE_PROJECT_sonarToken: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew sonar
   deploy:
     if: ${{ github.event_name != 'pull_request' }}
